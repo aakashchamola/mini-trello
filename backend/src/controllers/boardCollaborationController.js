@@ -12,9 +12,12 @@ const boardCollaborationController = {
   async inviteUser(req, res) {
     try {
       const { boardId } = req.params;
+      console.log('Inviting user to board:', boardId, 'Body:', req.body);
+      
       const { error, value } = inviteMemberSchema.validate(req.body);
       
       if (error) {
+        console.log('Validation error:', error.details);
         return res.status(400).json({
           error: 'Validation error',
           details: error.details.map(detail => detail.message)
@@ -35,6 +38,8 @@ const boardCollaborationController = {
         }]
       });
 
+      console.log('Found board:', board ? board.id : 'null', 'Members:', board?.members?.length || 0);
+
       if (!board) {
         return res.status(404).json({
           error: 'Board not found',
@@ -47,6 +52,8 @@ const boardCollaborationController = {
       const memberPermission = board.members.find(m => m.userId === req.user.id);
       const canInvite = isOwner || (memberPermission && memberPermission.canInvite());
 
+      console.log('Permission check - isOwner:', isOwner, 'memberPermission:', !!memberPermission, 'canInvite:', canInvite);
+
       if (!canInvite) {
         return res.status(403).json({
           error: 'Permission denied',
@@ -55,12 +62,17 @@ const boardCollaborationController = {
       }
 
       // Find user to invite
+      const whereConditions = [];
+      if (value.email) {
+        whereConditions.push({ email: value.email });
+      }
+      if (value.username) {
+        whereConditions.push({ username: value.username });
+      }
+
       const userToInvite = await User.findOne({
         where: {
-          [Op.or]: [
-            { email: value.email },
-            { username: value.username }
-          ]
+          [Op.or]: whereConditions
         }
       });
 

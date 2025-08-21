@@ -8,6 +8,7 @@
     "dev": "nodemon server.js",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:api": "node test-api.js",
     "db:migrate": "npx sequelize-cli db:migrate",
     "db:seed": "npx sequelize-cli db:seed:all",
     "db:reset": "npx sequelize-cli db:migrate:undo:all && npm run db:migrate && npm run db:seed"
@@ -39,6 +40,8 @@
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {
+    "axios": "^1.11.0",
+    "colors": "^1.4.0",
     "jest": "^29.6.2",
     "nodemon": "^3.0.1",
     "sequelize-cli": "^6.6.1",

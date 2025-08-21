@@ -133,22 +133,17 @@ const boardController = {
   // Get a specific board by ID
   async getBoardById(req, res) {
     try {
-      const { id } = req.params;
-
-      const board = await Board.findOne({
-        where: {
-          id,
-          userId: req.user.id
-        },
-        attributes: ['id', 'title', 'description', 'color', 'isPrivate', 'createdAt', 'updatedAt']
-      });
-
-      if (!board) {
-        return res.status(404).json({
-          error: 'Board not found',
-          message: 'Board does not exist or you do not have access to it'
-        });
-      }
+      // Board is already fetched and access verified by permission middleware
+      const board = {
+        id: req.board.id,
+        title: req.board.title,
+        description: req.board.description,
+        color: req.board.color,
+        isPrivate: req.board.isPrivate,
+        createdAt: req.board.createdAt,
+        updatedAt: req.board.updatedAt,
+        role: req.userBoardRole
+      };
 
       res.json({ board });
     } catch (error) {
@@ -163,7 +158,6 @@ const boardController = {
   // Update a board
   async updateBoard(req, res) {
     try {
-      const { id } = req.params;
       const { error, value } = updateBoardSchema.validate(req.body);
       
       if (error) {
@@ -173,32 +167,19 @@ const boardController = {
         });
       }
 
-      const board = await Board.findOne({
-        where: {
-          id,
-          userId: req.user.id
-        }
-      });
-
-      if (!board) {
-        return res.status(404).json({
-          error: 'Board not found',
-          message: 'Board does not exist or you do not have access to it'
-        });
-      }
-
-      await board.update(value);
+      // Board is already fetched and access verified by permission middleware
+      await req.board.update(value);
 
       res.json({
         message: 'Board updated successfully',
         board: {
-          id: board.id,
-          title: board.title,
-          description: board.description,
-          color: board.color,
-          isPrivate: board.isPrivate,
-          createdAt: board.createdAt,
-          updatedAt: board.updatedAt
+          id: req.board.id,
+          title: req.board.title,
+          description: req.board.description,
+          color: req.board.color,
+          isPrivate: req.board.isPrivate,
+          createdAt: req.board.createdAt,
+          updatedAt: req.board.updatedAt
         }
       });
     } catch (error) {
@@ -213,23 +194,9 @@ const boardController = {
   // Delete a board
   async deleteBoard(req, res) {
     try {
-      const { id } = req.params;
-
-      const board = await Board.findOne({
-        where: {
-          id,
-          userId: req.user.id
-        }
-      });
-
-      if (!board) {
-        return res.status(404).json({
-          error: 'Board not found',
-          message: 'Board does not exist or you do not have access to it'
-        });
-      }
-
-      await board.destroy();
+      // Board is already fetched and access verified by permission middleware
+      // Only admins/owners can delete boards (enforced by canAdmin middleware)
+      await req.board.destroy();
 
       res.json({
         message: 'Board deleted successfully'

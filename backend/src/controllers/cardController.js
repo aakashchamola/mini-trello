@@ -18,20 +18,8 @@ const cardController = {
         });
       }
 
-      // Check if board exists and belongs to user
-      const board = await Board.findOne({
-        where: {
-          id: boardId,
-          userId: req.user.id
-        }
-      });
-
-      if (!board) {
-        return res.status(404).json({
-          error: 'Board not found',
-          message: 'Board does not exist or you do not have access to it'
-        });
-      }
+      // Board access is already checked by middleware
+      const board = req.board;
 
       // Check if list exists in the board
       const list = await List.findOne({
@@ -104,20 +92,8 @@ const cardController = {
       const { boardId, listId } = req.params;
       const { priority, completed, search } = req.query;
 
-      // Check if board exists and belongs to user
-      const board = await Board.findOne({
-        where: {
-          id: boardId,
-          userId: req.user.id
-        }
-      });
-
-      if (!board) {
-        return res.status(404).json({
-          error: 'Board not found',
-          message: 'Board does not exist or you do not have access to it'
-        });
-      }
+      // Board access is already checked by middleware
+      const board = req.board;
 
       // Check if list exists in the board
       const list = await List.findOne({
@@ -177,25 +153,14 @@ const cardController = {
       const { boardId } = req.params;
       const { priority, completed, search } = req.query;
 
-      // Check if board exists and belongs to user
-      const board = await Board.findOne({
-        where: {
-          id: boardId,
-          userId: req.user.id
-        },
+      // Board access is already checked by middleware - get board with lists for cards
+      const board = await Board.findByPk(boardId, {
         include: [{
           model: List,
           as: 'lists',
           attributes: ['id', 'title']
         }]
       });
-
-      if (!board) {
-        return res.status(404).json({
-          error: 'Board not found',
-          message: 'Board does not exist or you do not have access to it'
-        });
-      }
 
       const listIds = board.lists.map(list => list.id);
       const whereClause = { listId: { [Op.in]: listIds } };
@@ -244,14 +209,8 @@ const cardController = {
     try {
       const { boardId, listId, cardId } = req.params;
 
-      // Check if board exists and belongs to user
-      const board = await Board.findOne({
-        where: {
-          id: boardId,
-          userId: req.user.id
-        }
-      });
-
+      // Board access is already checked by middleware
+      const board = req.board;
       if (!board) {
         return res.status(404).json({
           error: 'Board not found',
@@ -303,14 +262,8 @@ const cardController = {
         });
       }
 
-      // Check if board exists and belongs to user
-      const board = await Board.findOne({
-        where: {
-          id: boardId,
-          userId: req.user.id
-        }
-      });
-
+      // Board access is already checked by middleware
+      const board = req.board;
       if (!board) {
         return res.status(404).json({
           error: 'Board not found',
@@ -379,14 +332,8 @@ const cardController = {
         });
       }
 
-      // Check if board exists and belongs to user
-      const board = await Board.findOne({
-        where: {
-          id: boardId,
-          userId: req.user.id
-        }
-      });
-
+      // Board access is already checked by middleware
+      const board = req.board;
       if (!board) {
         return res.status(404).json({
           error: 'Board not found',
@@ -477,14 +424,8 @@ const cardController = {
     try {
       const { boardId, listId, cardId } = req.params;
 
-      // Check if board exists and belongs to user
-      const board = await Board.findOne({
-        where: {
-          id: boardId,
-          userId: req.user.id
-        }
-      });
-
+      // Board access is already checked by middleware
+      const board = req.board;
       if (!board) {
         return res.status(404).json({
           error: 'Board not found',

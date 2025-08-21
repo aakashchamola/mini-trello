@@ -38,6 +38,9 @@ if (process.env.NODE_ENV === 'development') {
 // Compression middleware for better performance
 app.use(compression());
 
+// Debug: Route registration logging
+console.log('Registering routes...');
+
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' })); // Parse JSON requests
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded requests

@@ -17,20 +17,8 @@ const listController = {
         });
       }
 
-      // Check if board exists and belongs to user
-      const board = await Board.findOne({
-        where: {
-          id: boardId,
-          userId: req.user.id
-        }
-      });
-
-      if (!board) {
-        return res.status(404).json({
-          error: 'Board not found',
-          message: 'Board does not exist or you do not have access to it'
-        });
-      }
+      // Board access is already checked by middleware
+      const board = req.board;
 
       // Get the next position if not provided
       let position = value.position;
@@ -80,20 +68,8 @@ const listController = {
     try {
       const { boardId } = req.params;
 
-      // Check if board exists and belongs to user
-      const board = await Board.findOne({
-        where: {
-          id: boardId,
-          userId: req.user.id
-        }
-      });
-
-      if (!board) {
-        return res.status(404).json({
-          error: 'Board not found',
-          message: 'Board does not exist or you do not have access to it'
-        });
-      }
+      // Board access is already checked by middleware
+      const board = req.board;
 
       const lists = await List.findAll({
         where: { boardId },
@@ -120,20 +96,8 @@ const listController = {
     try {
       const { boardId, listId } = req.params;
 
-      // Check if board exists and belongs to user
-      const board = await Board.findOne({
-        where: {
-          id: boardId,
-          userId: req.user.id
-        }
-      });
-
-      if (!board) {
-        return res.status(404).json({
-          error: 'Board not found',
-          message: 'Board does not exist or you do not have access to it'
-        });
-      }
+      // Board access is already checked by middleware
+      const board = req.board;
 
       const list = await List.findOne({
         where: {
@@ -173,20 +137,8 @@ const listController = {
         });
       }
 
-      // Check if board exists and belongs to user
-      const board = await Board.findOne({
-        where: {
-          id: boardId,
-          userId: req.user.id
-        }
-      });
-
-      if (!board) {
-        return res.status(404).json({
-          error: 'Board not found',
-          message: 'Board does not exist or you do not have access to it'
-        });
-      }
+      // Board access is already checked by middleware
+      const board = req.board;
 
       const list = await List.findOne({
         where: {
@@ -264,20 +216,8 @@ const listController = {
         });
       }
 
-      // Check if board exists and belongs to user
-      const board = await Board.findOne({
-        where: {
-          id: boardId,
-          userId: req.user.id
-        }
-      });
-
-      if (!board) {
-        return res.status(404).json({
-          error: 'Board not found',
-          message: 'Board does not exist or you do not have access to it'
-        });
-      }
+      // Board access is already checked by middleware
+      const board = req.board;
 
       // Verify all lists belong to the board
       const listIds = value.listPositions.map(lp => lp.id);
@@ -334,20 +274,8 @@ const listController = {
     try {
       const { boardId, listId } = req.params;
 
-      // Check if board exists and belongs to user
-      const board = await Board.findOne({
-        where: {
-          id: boardId,
-          userId: req.user.id
-        }
-      });
-
-      if (!board) {
-        return res.status(404).json({
-          error: 'Board not found',
-          message: 'Board does not exist or you do not have access to it'
-        });
-      }
+      // Board access is already checked by middleware
+      const board = req.board;
 
       const list = await List.findOne({
         where: {

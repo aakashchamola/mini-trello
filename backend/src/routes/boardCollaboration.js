@@ -9,6 +9,12 @@ const { authenticateToken } = require('../middleware/auth');
 // All collaboration routes require authentication
 router.use(authenticateToken);
 
+// Add debug logging
+router.use((req, res, next) => {
+  console.log(`Board Collaboration Route: ${req.method} ${req.path}`);
+  next();
+});
+
 // Board member management routes
 router.post('/boards/:boardId/invite', boardCollaborationController.inviteUser);
 router.get('/boards/:boardId/members', boardCollaborationController.getBoardMembers);

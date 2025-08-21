@@ -8,10 +8,10 @@ const { canRead, canEdit, canAdmin } = require('../middleware/boardPermissions')
 router.use(authenticateToken);
 
 // Board CRUD operations
-router.post('/boards', authenticateToken, boardController.createBoard);
-router.get('/boards', authenticateToken, boardController.getUserBoards);
-router.get('/boards/:boardId', authenticateToken, canRead, boardController.getBoardById);
-router.put('/boards/:boardId', authenticateToken, canEdit, boardController.updateBoard);
-router.delete('/boards/:boardId', authenticateToken, canAdmin, boardController.deleteBoard);
+router.post('/', boardController.createBoard);
+router.get('/', boardController.getUserBoards);
+router.get('/:boardId', canRead, boardController.getBoardById);
+router.put('/:boardId', canEdit, boardController.updateBoard);
+router.delete('/:boardId', canAdmin, boardController.deleteBoard);
 
 module.exports = router;
