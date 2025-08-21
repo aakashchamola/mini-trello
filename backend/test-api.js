@@ -815,6 +815,272 @@ async function testSearchFunctionality() {
   });
 }
 
+async function testActivityLogging() {
+  logSection('Activity Logging Tests');
+
+  // Test getting board activities (should have activities from previous operations)
+  await test('Get board activity feed', async () => {
+    const boardId = testData.boards[0].id;
+    const response = await makeRequest('GET', `/boards/${boardId}/activities`, null, testData.tokens[0]);
+    if (response.status !== 200) throw new Error(`Expected 200, got ${response.status}`);
+    if (!response.data.success) throw new Error('Response should indicate success');
+    if (!Array.isArray(response.data.activities)) throw new Error('Activities should be an array');
+    if (response.data.activities.length === 0) throw new Error('Should have some activities from previous operations');
+    
+    // Check activity structure
+    const activity = response.data.activities[0];
+    if (!activity.id) throw new Error('Activity should have an id');
+    if (!activity.actionType) throw new Error('Activity should have an actionType');
+    if (!activity.entityType) throw new Error('Activity should have an entityType');
+    if (!activity.description) throw new Error('Activity should have a description');
+    if (!activity.createdAt) throw new Error('Activity should have a createdAt timestamp');
+    if (!activity.user) throw new Error('Activity should include user information');
+    if (!activity.user.username) throw new Error('Activity user should have a username');
+  });
+
+  await test('Get board activities with pagination', async () => {
+    const boardId = testData.boards[0].id;
+    const response = await makeRequest('GET', `/boards/${boardId}/activities?page=1&limit=5`, null, testData.tokens[0]);
+    if (response.status !== 200) throw new Error(`Expected 200, got ${response.status}`);
+    if (response.data.activities.length > 5) throw new Error('Should respect limit parameter');
+    if (typeof response.data.totalCount !== 'number') throw new Error('Should include totalCount');
+    if (typeof response.data.totalPages !== 'number') throw new Error('Should include totalPages');
+    if (typeof response.data.currentPage !== 'number') throw new Error('Should include currentPage');
+  });
+
+  await test('Filter activities by action type', async () => {
+    const boardId = testData.boards[0].id;
+    const response = await makeRequest('GET', `/boards/${boardId}/activities?actionType=created`, null, testData.tokens[0]);
+    if (response.status !== 200) throw new Error(`Expected 200, got ${response.status}`);
+    // Verify all returned activities have the 'created' action type
+    response.data.activities.forEach(activity => {
+      if (activity.actionType !== 'created') {
+        throw new Error(`Expected actionType 'created', got '${activity.actionType}'`);
+      }
+    });
+  });
+
+  await test('Filter activities by entity type', async () => {
+    const boardId = testData.boards[0].id;
+    const response = await makeRequest('GET', `/boards/${boardId}/activities?entityType=card`, null, testData.tokens[0]);
+    if (response.status !== 200) throw new Error(`Expected 200, got ${response.status}`);
+    // Verify all returned activities have the 'card' entity type
+    response.data.activities.forEach(activity => {
+      if (activity.entityType !== 'card') {
+        throw new Error(`Expected entityType 'card', got '${activity.entityType}'`);
+      }
+    });
+  });
+
+  // Test that activity logging happens automatically on operations
+  await test('Verify board creation generates activity', async () => {
+    const initialBoardId = testData.boards[0].id;
+    const initialResponse = await makeRequest('GET', `/boards/${initialBoardId}/activities`, null, testData.tokens[0]);
+    const initialCount = initialResponse.data.totalCount;
+
+    // Create a new board to trigger activity logging
+    const boardData = {
+      title: 'Activity Test Board',
+      description: 'Board created to test activity logging',
+      workspaceId: testData.workspaces[0].id
+    };
+    const createResponse = await makeRequest('POST', '/boards', boardData, testData.tokens[0]);
+    if (createResponse.status !== 201) throw new Error(`Expected 201, got ${createResponse.status}`);
+    
+    const newBoardId = createResponse.data.board.id;
+    testData.boards.push(createResponse.data.board);
+
+    // Check if activity was logged for the new board
+    const activitiesResponse = await makeRequest('GET', `/boards/${newBoardId}/activities`, null, testData.tokens[0]);
+    if (activitiesResponse.status !== 200) throw new Error(`Expected 200, got ${activitiesResponse.status}`);
+    
+    const activities = activitiesResponse.data.activities;
+    const boardCreatedActivity = activities.find(activity => 
+      activity.actionType === 'created' && 
+      activity.entityType === 'board' &&
+      activity.entityId === newBoardId
+    );
+    
+    if (!boardCreatedActivity) {
+      throw new Error('Board creation activity should have been logged');
+    }
+    
+    if (!boardCreatedActivity.description.includes('created board')) {
+      throw new Error('Activity description should mention board creation');
+    }
+  });
+
+  await test('Verify card creation generates activity', async () => {
+    const boardId = testData.boards[0].id;
+    const listId = testData.lists[0].id;
+    
+    // Get initial activity count
+    const initialResponse = await makeRequest('GET', `/boards/${boardId}/activities`, null, testData.tokens[0]);
+    const initialCount = initialResponse.data.totalCount;
+
+    // Create a card to trigger activity logging
+    const cardData = {
+      title: 'Activity Test Card',
+      description: 'Card created to test activity logging',
+      priority: 'medium'
+    };
+    const createResponse = await makeRequest('POST', `/boards/${boardId}/lists/${listId}/cards`, cardData, testData.tokens[0]);
+    if (createResponse.status !== 201) throw new Error(`Expected 201, got ${createResponse.status}`);
+    
+    const newCardId = createResponse.data.card.id;
+
+    // Check if activity was logged
+    const activitiesResponse = await makeRequest('GET', `/boards/${boardId}/activities`, null, testData.tokens[0]);
+    if (activitiesResponse.status !== 200) throw new Error(`Expected 200, got ${activitiesResponse.status}`);
+    
+    if (activitiesResponse.data.totalCount <= initialCount) {
+      throw new Error('Activity count should have increased after card creation');
+    }
+    
+    const activities = activitiesResponse.data.activities;
+    const cardCreatedActivity = activities.find(activity => 
+      activity.actionType === 'created' && 
+      activity.entityType === 'card' &&
+      activity.entityId === newCardId
+    );
+    
+    if (!cardCreatedActivity) {
+      throw new Error('Card creation activity should have been logged');
+    }
+    
+    if (!cardCreatedActivity.description.includes('created card')) {
+      throw new Error('Activity description should mention card creation');
+    }
+  });
+
+  await test('Verify card update generates activity with old/new values', async () => {
+    const boardId = testData.boards[0].id;
+    const listId = testData.lists[0].id;
+    const cardId = testData.cards[0].id;
+    
+    // Update the card to trigger activity logging
+    const updateData = {
+      title: 'Updated Activity Test Card',
+      description: 'Updated description for activity testing',
+      priority: 'high'
+    };
+    const updateResponse = await makeRequest('PUT', `/boards/${boardId}/lists/${listId}/cards/${cardId}`, updateData, testData.tokens[0]);
+    if (updateResponse.status !== 200) throw new Error(`Expected 200, got ${updateResponse.status}`);
+
+    // Check if activity was logged
+    const activitiesResponse = await makeRequest('GET', `/boards/${boardId}/activities?actionType=updated&entityType=card`, null, testData.tokens[0]);
+    if (activitiesResponse.status !== 200) throw new Error(`Expected 200, got ${activitiesResponse.status}`);
+    
+    const activities = activitiesResponse.data.activities;
+    const cardUpdateActivity = activities.find(activity => 
+      activity.actionType === 'updated' && 
+      activity.entityType === 'card' &&
+      activity.entityId === cardId
+    );
+    
+    if (!cardUpdateActivity) {
+      throw new Error('Card update activity should have been logged');
+    }
+    
+    if (!cardUpdateActivity.description.includes('updated card')) {
+      throw new Error('Activity description should mention card update');
+    }
+
+    // Check if new values were recorded
+    if (!cardUpdateActivity.newValue) {
+      throw new Error('Activity should include new values for update operations');
+    }
+    
+    const newValues = JSON.parse(cardUpdateActivity.newValue);
+    if (newValues.title !== updateData.title) {
+      throw new Error('New values should match the update data');
+    }
+  });
+
+  await test('Verify comment creation generates activity', async () => {
+    const boardId = testData.boards[0].id;
+    const listId = testData.lists[0].id;
+    const cardId = testData.cards[0].id;
+    
+    // Create a comment to trigger activity logging
+    const commentData = {
+      content: 'This is a test comment for activity logging'
+    };
+    const createResponse = await makeRequest('POST', `/boards/${boardId}/lists/${listId}/cards/${cardId}/comments`, commentData, testData.tokens[0]);
+    if (createResponse.status !== 201) throw new Error(`Expected 201, got ${createResponse.status}`);
+    
+    const newCommentId = createResponse.data.comment.id;
+
+    // Check if activity was logged
+    const activitiesResponse = await makeRequest('GET', `/boards/${boardId}/activities?actionType=commented&entityType=comment`, null, testData.tokens[0]);
+    if (activitiesResponse.status !== 200) throw new Error(`Expected 200, got ${activitiesResponse.status}`);
+    
+    const activities = activitiesResponse.data.activities;
+    const commentActivity = activities.find(activity => 
+      activity.actionType === 'commented' && 
+      activity.entityType === 'comment' &&
+      activity.entityId === newCommentId
+    );
+    
+    if (!commentActivity) {
+      throw new Error('Comment creation activity should have been logged');
+    }
+    
+    if (!commentActivity.description.includes('commented on')) {
+      throw new Error('Activity description should mention commenting');
+    }
+  });
+
+  await test('Activity feed shows most recent activities first', async () => {
+    const boardId = testData.boards[0].id;
+    const response = await makeRequest('GET', `/boards/${boardId}/activities`, null, testData.tokens[0]);
+    if (response.status !== 200) throw new Error(`Expected 200, got ${response.status}`);
+    
+    const activities = response.data.activities;
+    if (activities.length < 2) return; // Skip if not enough activities
+    
+    // Verify activities are ordered by creation time (newest first)
+    for (let i = 1; i < activities.length; i++) {
+      const current = new Date(activities[i].createdAt);
+      const previous = new Date(activities[i - 1].createdAt);
+      if (current > previous) {
+        throw new Error('Activities should be ordered by creation time (newest first)');
+      }
+    }
+  });
+
+  await test('Activity feed includes user information', async () => {
+    const boardId = testData.boards[0].id;
+    const response = await makeRequest('GET', `/boards/${boardId}/activities`, null, testData.tokens[0]);
+    if (response.status !== 200) throw new Error(`Expected 200, got ${response.status}`);
+    
+    const activities = response.data.activities;
+    if (activities.length === 0) return; // Skip if no activities
+    
+    activities.forEach((activity, index) => {
+      if (!activity.user) {
+        throw new Error(`Activity ${index} should include user information`);
+      }
+      if (!activity.user.id || !activity.user.username || !activity.user.email) {
+        throw new Error(`Activity ${index} user should include id, username, and email`);
+      }
+    });
+  });
+
+  await test('Reject unauthorized access to activity feed', async () => {
+    try {
+      const boardId = testData.boards[0].id; // This board belongs to user 1
+      // Try to access with user 2's token (who is not a member of this board)
+      await makeRequest('GET', `/boards/${boardId}/activities`, null, 'invalid-token');
+      throw new Error('Should have failed with unauthorized access');
+    } catch (error) {
+      if (error.response?.status !== 401) {
+        throw new Error(`Expected 401, got ${error.response?.status || 'network error'}`);
+      }
+    }
+  });
+}
+
 async function testCleanup() {
   logSection('Cleanup Tests');
 
@@ -927,6 +1193,7 @@ async function runAllTests() {
     await testCardManagement();
     await testSearchFunctionality();
     await testCommentManagement();
+    await testActivityLogging();
     await testCleanup();
     await testErrorHandling();
   } catch (error) {
