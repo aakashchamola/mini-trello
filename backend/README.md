@@ -71,6 +71,8 @@ Server runs on `http://localhost:3001`
 ## Features
 
 - **User Authentication**: Registration, login, JWT tokens
+- **Board Management**: Create, read, update, delete boards with search and pagination
+- **List Management**: Create, read, update, delete, and reorder lists within boards
 - **Protected Routes**: Bearer token authentication
 - **Input Validation**: Joi schema validation
 - **Database**: MySQL with Docker or SQLite for local development
@@ -87,6 +89,18 @@ Server runs on `http://localhost:3001`
 - `src/validation/authValidation.js` - Input validation schemas
 - `src/utils/jwt.js` - Token generation and verification
 
+### Board Management System
+- `src/models/Board.js` - Board model with user relationships
+- `src/controllers/boardController.js` - Board CRUD operations
+- `src/routes/boards.js` - Board route definitions
+- `src/validation/boardValidation.js` - Board input validation schemas
+
+### List Management System
+- `src/models/List.js` - List model with board relationships and position management
+- `src/controllers/listController.js` - List CRUD operations with reordering
+- `src/routes/lists.js` - List route definitions within boards
+- `src/validation/listValidation.js` - List input validation schemas
+
 ### Configuration
 - `src/config/database.js` - Database connection and setup
 - `src/models/index.js` - Model initialization and sync
@@ -94,8 +108,24 @@ Server runs on `http://localhost:3001`
 
 ## API Endpoints
 
+### Authentication
 - `POST /api/auth/register` - User registration
 - `POST /api/auth/login` - User login
 - `GET /api/auth/profile` - Get user profile (protected)
 - `PUT /api/auth/profile` - Update profile (protected)
 - `PUT /api/auth/change-password` - Change password (protected)
+
+### Board Management
+- `POST /api/boards` - Create a new board (protected)
+- `GET /api/boards` - Get user's boards with pagination and search (protected)
+- `GET /api/boards/:id` - Get specific board by ID (protected)
+- `PUT /api/boards/:id` - Update board details (protected)
+- `DELETE /api/boards/:id` - Delete a board (protected)
+
+### List Management
+- `POST /api/boards/:boardId/lists` - Create a new list in a board (protected)
+- `GET /api/boards/:boardId/lists` - Get all lists for a board (protected)
+- `GET /api/boards/:boardId/lists/:listId` - Get specific list by ID (protected)
+- `PUT /api/boards/:boardId/lists/:listId` - Update list details (protected)
+- `PUT /api/boards/:boardId/lists/reorder` - Reorder multiple lists (protected)
+- `DELETE /api/boards/:boardId/lists/:listId` - Delete a list (protected)

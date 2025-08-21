@@ -3,10 +3,37 @@
 
 const { sequelize } = require('../config/database');
 const User = require('./User');
+const Board = require('./Board');
+const List = require('./List');
+
+// Define model associations
+User.hasMany(Board, {
+  foreignKey: 'userId',
+  as: 'boards',
+  onDelete: 'CASCADE'
+});
+
+Board.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'owner'
+});
+
+Board.hasMany(List, {
+  foreignKey: 'boardId',
+  as: 'lists',
+  onDelete: 'CASCADE'
+});
+
+List.belongsTo(Board, {
+  foreignKey: 'boardId',
+  as: 'board'
+});
 
 // Initialize all models
 const models = {
   User,
+  Board,
+  List,
   sequelize
 };
 

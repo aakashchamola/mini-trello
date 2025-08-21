@@ -12,6 +12,8 @@ const { syncDatabase } = require('./src/models');
 
 // Import routes
 const authRoutes = require('./src/routes/auth');
+const boardRoutes = require('./src/routes/boards');
+const listRoutes = require('./src/routes/lists');
 
 // Create Express application
 const app = express();
@@ -65,12 +67,11 @@ app.get('/api', (req, res) => {
 // Authentication routes
 app.use('/api/auth', authRoutes);
 
-// Temporary route for testing (will be removed)
-app.get('/api/boards', (req, res) => {
-  res.json([
-    { id: 1, title: 'Sample Board', description: 'This is a sample board' }
-  ]);
-});
+// Board management routes
+app.use('/api/boards', boardRoutes);
+
+// List management routes
+app.use('/api', listRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
