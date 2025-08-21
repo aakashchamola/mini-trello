@@ -47,6 +47,20 @@ const Board = sequelize.define('Board', {
     allowNull: false,
     defaultValue: false
   },
+  visibility: {
+    type: DataTypes.ENUM('private', 'workspace', 'public'),
+    allowNull: false,
+    defaultValue: 'private'
+  },
+  workspaceId: {
+    type: DataTypes.INTEGER,
+    allowNull: true, // Can be null for personal boards
+    references: {
+      model: 'workspaces',
+      key: 'id'
+    },
+    onDelete: 'CASCADE'
+  },
   userId: {
     type: DataTypes.INTEGER,
     allowNull: false,

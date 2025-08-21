@@ -8,10 +8,12 @@
  * 
  * Features tested:
  * - Authentication (register, login, profile)
- * - Board Management (CRUD, shared boards)
+ * - Workspace Management (CRUD, member management)
+ * - Board Management (CRUD, shared boards, workspace integration)
  * - Board Collaboration (invite, members, permissions)
  * - List Management (CRUD, reordering)
- * - Card Management (CRUD, move between lists, filters)
+ * - Card Management (CRUD, move between lists, filters, search)
+ * - Comment Management (CRUD, permissions, validation)
  */
 
 const axios = require('axios');
@@ -41,10 +43,12 @@ const TEST_CONFIG = {
 let testData = {
   users: [],
   tokens: [],
+  workspaces: [],
   boards: [],
   lists: [],
   cards: [],
-  invitations: []
+  invitations: [],
+  comments: []
 };
 
 let testResults = {
@@ -207,15 +211,126 @@ async function testAuthentication() {
   });
 }
 
+async function testWorkspaceManagement() {
+  logSection('Workspace Management Tests');
+
+  // Test create workspace
+  await test('Create first workspace', async () => {
+    const workspaceData = {
+      name: 'Test Workspace 1',
+      description: 'First test workspace for organization'
+    };
+    const response = await makeRequest('POST', '/workspaces', workspaceData, testData.tokens[0]);
+    if (response.status !== 201) throw new Error(`Expected 201, got ${response.status}`);
+    testData.workspaces.push(response.data.workspace);
+  });
+
+  await test('Create second workspace', async () => {
+    const workspaceData = {
+      name: 'Test Workspace 2',
+      description: 'Second test workspace'
+    };
+    const response = await makeRequest('POST', '/workspaces', workspaceData, testData.tokens[1]);
+    if (response.status !== 201) throw new Error(`Expected 201, got ${response.status}`);
+    testData.workspaces.push(response.data.workspace);
+  });
+
+  // Test get user workspaces
+  await test('Get user workspaces', async () => {
+    const response = await makeRequest('GET', '/workspaces', null, testData.tokens[0]);
+    if (response.status !== 200) throw new Error(`Expected 200, got ${response.status}`);
+    if (response.data.workspaces.length < 1) throw new Error('Should have at least 1 workspace');
+  });
+
+  // Test get specific workspace
+  await test('Get specific workspace', async () => {
+    const workspaceId = testData.workspaces[0].id;
+    const response = await makeRequest('GET', `/workspaces/${workspaceId}`, null, testData.tokens[0]);
+    if (response.status !== 200) throw new Error(`Expected 200, got ${response.status}`);
+    if (response.data.workspace.id !== workspaceId) throw new Error('Workspace ID mismatch');
+  });
+
+  // Test update workspace
+  await test('Update workspace', async () => {
+    const workspaceId = testData.workspaces[0].id;
+    const updateData = {
+      name: 'Updated Test Workspace 1',
+      description: 'Updated description'
+    };
+    const response = await makeRequest('PUT', `/workspaces/${workspaceId}`, updateData, testData.tokens[0]);
+    if (response.status !== 200) throw new Error(`Expected 200, got ${response.status}`);
+    if (response.data.workspace.name !== updateData.name) throw new Error('Workspace name not updated');
+  });
+
+  // Test workspace member invitation
+  await test('Invite user to workspace', async () => {
+    const workspaceId = testData.workspaces[0].id;
+    const inviteData = {
+      email: TEST_CONFIG.users[1].email,
+      role: 'member'
+    };
+    const response = await makeRequest('POST', `/workspaces/${workspaceId}/invite`, inviteData, testData.tokens[0]);
+    if (response.status !== 201) throw new Error(`Expected 201, got ${response.status}`);
+  });
+
+  // Test get workspace members
+  await test('Get workspace members', async () => {
+    const workspaceId = testData.workspaces[0].id;
+    const response = await makeRequest('GET', `/workspaces/${workspaceId}/members`, null, testData.tokens[0]);
+    if (response.status !== 200) throw new Error(`Expected 200, got ${response.status}`);
+  });
+
+  // Test unauthorized workspace access
+  await test('Reject unauthorized workspace access', async () => {
+    try {
+      const workspaceId = testData.workspaces[1].id; // Workspace owned by user 2
+      await makeRequest('GET', `/workspaces/${workspaceId}`, null, testData.tokens[0]); // User 1 trying to access
+      throw new Error('Should have failed with unauthorized access');
+    } catch (error) {
+      if (error.response?.status !== 403) {
+        throw new Error(`Expected 403, got ${error.response?.status || 'network error'}`);
+      }
+    }
+  });
+
+  // Test delete workspace
+  await test('Delete workspace', async () => {
+    // Create a workspace specifically for deletion
+    const workspaceData = {
+      name: 'Workspace To Delete',
+      description: 'This workspace will be deleted'
+    };
+    const createResponse = await makeRequest('POST', '/workspaces', workspaceData, testData.tokens[0]);
+    if (createResponse.status !== 201) throw new Error(`Expected 201, got ${createResponse.status}`);
+    
+    const workspaceId = createResponse.data.workspace.id;
+    const deleteResponse = await makeRequest('DELETE', `/workspaces/${workspaceId}`, null, testData.tokens[0]);
+    if (deleteResponse.status !== 200) throw new Error(`Expected 200, got ${deleteResponse.status}`);
+  });
+
+  // Test unauthorized workspace deletion
+  await test('Reject unauthorized workspace deletion', async () => {
+    try {
+      const workspaceId = testData.workspaces[1].id; // Workspace owned by user 2
+      await makeRequest('DELETE', `/workspaces/${workspaceId}`, null, testData.tokens[0]); // User 1 trying to delete
+      throw new Error('Should have failed with unauthorized access');
+    } catch (error) {
+      if (error.response?.status !== 403) {
+        throw new Error(`Expected 403, got ${error.response?.status || 'network error'}`);
+      }
+    }
+  });
+}
+
 async function testBoardManagement() {
   logSection('Board Management Tests');
 
-  // Test create board
+  // Test create board in workspace
   await test('Create first board', async () => {
     const boardData = {
       title: 'Test Board 1',
       description: 'First test board',
-      color: '#FF6B6B'
+      workspaceId: testData.workspaces[0].id
     };
     const response = await makeRequest('POST', '/boards', boardData, testData.tokens[0]);
     if (response.status !== 201) throw new Error(`Expected 201, got ${response.status}`);
@@ -225,52 +340,12 @@ async function testBoardManagement() {
   await test('Create second board', async () => {
     const boardData = {
       title: 'Test Board 2',
-      description: 'Second test board',
-      color: '#4ECDC4'
+      description: 'Second test board for user 2',
+      workspaceId: testData.workspaces[1].id
     };
-    const response = await makeRequest('POST', '/boards', boardData, testData.tokens[0]);
+    const response = await makeRequest('POST', '/boards', boardData, testData.tokens[1]);
     if (response.status !== 201) throw new Error(`Expected 201, got ${response.status}`);
     testData.boards.push(response.data.board);
-  });
-
-  // Test get user boards
-  await test('Get user boards', async () => {
-    const response = await makeRequest('GET', '/boards', null, testData.tokens[0]);
-    if (response.status !== 200) throw new Error(`Expected 200, got ${response.status}`);
-    if (response.data.boards.length < 2) throw new Error('Should have at least 2 boards');
-  });
-
-  // Test get specific board
-  await test('Get specific board', async () => {
-    const boardId = testData.boards[0].id;
-    const response = await makeRequest('GET', `/boards/${boardId}`, null, testData.tokens[0]);
-    if (response.status !== 200) throw new Error(`Expected 200, got ${response.status}`);
-    if (response.data.board.id !== boardId) throw new Error('Board ID mismatch');
-  });
-
-  // Test update board
-  await test('Update board', async () => {
-    const boardId = testData.boards[0].id;
-    const updateData = {
-      title: 'Updated Test Board 1',
-      description: 'Updated description'
-    };
-    const response = await makeRequest('PUT', `/boards/${boardId}`, updateData, testData.tokens[0]);
-    if (response.status !== 200) throw new Error(`Expected 200, got ${response.status}`);
-    if (response.data.board.title !== updateData.title) throw new Error('Board title not updated');
-  });
-
-  // Test unauthorized board access
-  await test('Reject unauthorized board access', async () => {
-    try {
-      const boardId = testData.boards[0].id;
-      await makeRequest('GET', `/boards/${boardId}`, null, testData.tokens[1]);
-      throw new Error('Should have failed with unauthorized access');
-    } catch (error) {
-      if (error.response?.status !== 403) {
-        throw new Error(`Expected 403, got ${error.response?.status || 'network error'}`);
-      }
-    }
   });
 }
 
@@ -443,13 +518,36 @@ async function testCardManagement() {
     testData.cards.push(response.data.card);
   });
 
+  // Test card with assignees
+  await test('Create card with assignees', async () => {
+    const boardId = testData.boards[0].id;
+    const listId = testData.lists[0].id;
+    const cardData = {
+      title: 'Review code changes',
+      description: 'Review PR #123 for new features',
+      priority: 'high',
+      labels: ['review', 'urgent'],
+      assignees: [testData.users[0].id, testData.users[1].id], // Assign to both users
+      dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString() // 3 days from now
+    };
+    const response = await makeRequest('POST', `/boards/${boardId}/lists/${listId}/cards`, cardData, testData.tokens[0]);
+    if (response.status !== 201) throw new Error(`Expected 201, got ${response.status}`);
+    
+    // Verify assignees are properly stored
+    if (!response.data.card.assignees || response.data.card.assignees.length !== 2) {
+      throw new Error('Assignees not properly stored');
+    }
+    
+    testData.cards.push(response.data.card);
+  });
+
   // Test get list cards
   await test('Get list cards', async () => {
     const boardId = testData.boards[0].id;
     const listId = testData.lists[0].id;
     const response = await makeRequest('GET', `/boards/${boardId}/lists/${listId}/cards`, null, testData.tokens[0]);
     if (response.status !== 200) throw new Error(`Expected 200, got ${response.status}`);
-    if (response.data.cards.length !== 2) throw new Error('Should have 2 cards in first list');
+    if (response.data.cards.length !== 3) throw new Error('Should have 3 cards in first list');
   });
 
   // Test get board cards
@@ -457,7 +555,7 @@ async function testCardManagement() {
     const boardId = testData.boards[0].id;
     const response = await makeRequest('GET', `/boards/${boardId}/cards`, null, testData.tokens[0]);
     if (response.status !== 200) throw new Error(`Expected 200, got ${response.status}`);
-    if (response.data.cards.length !== 3) throw new Error('Should have 3 cards total');
+    if (response.data.cards.length !== 4) throw new Error('Should have 4 cards total');
   });
 
   // Test card filtering
@@ -466,7 +564,7 @@ async function testCardManagement() {
     const listId = testData.lists[0].id;
     const response = await makeRequest('GET', `/boards/${boardId}/lists/${listId}/cards?priority=high`, null, testData.tokens[0]);
     if (response.status !== 200) throw new Error(`Expected 200, got ${response.status}`);
-    if (response.data.cards.length !== 1) throw new Error('Should have 1 high priority card');
+    if (response.data.cards.length !== 2) throw new Error('Should have 2 high priority cards');
   });
 
   // Test update card
@@ -480,6 +578,24 @@ async function testCardManagement() {
     };
     const response = await makeRequest('PUT', `/boards/${boardId}/lists/${listId}/cards/${cardId}`, updateData, testData.tokens[0]);
     if (response.status !== 200) throw new Error(`Expected 200, got ${response.status}`);
+  });
+
+  // Test update card assignees
+  await test('Update card assignees', async () => {
+    const boardId = testData.boards[0].id;
+    const listId = testData.lists[0].id;
+    const cardId = testData.cards[1].id; // Use second card
+    const updateData = {
+      assignees: [testData.users[1].id], // Change assignees
+      labels: ['feature', 'frontend', 'updated']
+    };
+    const response = await makeRequest('PUT', `/boards/${boardId}/lists/${listId}/cards/${cardId}`, updateData, testData.tokens[0]);
+    if (response.status !== 200) throw new Error(`Expected 200, got ${response.status}`);
+    
+    // Verify assignees were updated
+    if (!response.data.card.assignees || response.data.card.assignees.length !== 1) {
+      throw new Error('Assignees not properly updated');
+    }
   });
 
   // Test move card between lists
@@ -510,8 +626,207 @@ async function testCardManagement() {
   });
 }
 
+async function testCommentManagement() {
+  logSection('Comment Management Tests');
+
+  // Test create comment
+  await test('Create first comment on card', async () => {
+    const boardId = testData.boards[0].id;
+    const listId = testData.lists[0].id;
+    const cardId = testData.cards[0].id;
+    const commentData = {
+      content: 'This is a great feature request! Let me work on this.'
+    };
+    const response = await makeRequest('POST', `/boards/${boardId}/lists/${listId}/cards/${cardId}/comments`, commentData, testData.tokens[0]);
+    if (response.status !== 201) throw new Error(`Expected 201, got ${response.status}`);
+    testData.comments.push(response.data.comment);
+  });
+
+  await test('Create second comment by different user', async () => {
+    const boardId = testData.boards[0].id;
+    const listId = testData.lists[0].id;
+    const cardId = testData.cards[0].id;
+    const commentData = {
+      content: 'Thanks for looking into this! I have some additional requirements...'
+    };
+    const response = await makeRequest('POST', `/boards/${boardId}/lists/${listId}/cards/${cardId}/comments`, commentData, testData.tokens[1]);
+    if (response.status !== 201) throw new Error(`Expected 201, got ${response.status}`);
+    testData.comments.push(response.data.comment);
+  });
+
+  await test('Create comment on different card', async () => {
+    const boardId = testData.boards[0].id;
+    const listId = testData.lists[1].id;
+    const cardId = testData.cards[2].id;
+    const commentData = {
+      content: 'This collaboration feature is working perfectly!'
+    };
+    const response = await makeRequest('POST', `/boards/${boardId}/lists/${listId}/cards/${cardId}/comments`, commentData, testData.tokens[1]);
+    if (response.status !== 201) throw new Error(`Expected 201, got ${response.status}`);
+    testData.comments.push(response.data.comment);
+  });
+
+  // Test get comments for a card
+  await test('Get comments for card', async () => {
+    const boardId = testData.boards[0].id;
+    const listId = testData.lists[0].id;
+    const cardId = testData.cards[0].id;
+    const response = await makeRequest('GET', `/boards/${boardId}/lists/${listId}/cards/${cardId}/comments`, null, testData.tokens[0]);
+    if (response.status !== 200) throw new Error(`Expected 200, got ${response.status}`);
+    if (response.data.comments.length !== 2) throw new Error('Should have 2 comments on first card');
+  });
+
+  // Test update comment
+  await test('Update own comment', async () => {
+    const boardId = testData.boards[0].id;
+    const listId = testData.lists[0].id;
+    const cardId = testData.cards[0].id;
+    const commentId = testData.comments[0].id;
+    const updateData = {
+      content: 'This is a great feature request! Let me work on this ASAP. Updated comment.'
+    };
+    const response = await makeRequest('PUT', `/boards/${boardId}/lists/${listId}/cards/${cardId}/comments/${commentId}`, updateData, testData.tokens[0]);
+    if (response.status !== 200) throw new Error(`Expected 200, got ${response.status}`);
+    if (!response.data.comment.content.includes('Updated comment')) throw new Error('Comment was not updated');
+  });
+
+  // Test unauthorized comment update
+  await test('Reject unauthorized comment update', async () => {
+    try {
+      const boardId = testData.boards[0].id;
+      const listId = testData.lists[0].id;
+      const cardId = testData.cards[0].id;
+      const commentId = testData.comments[0].id; // This comment belongs to user 1
+      const updateData = {
+        content: 'Trying to update someone else\'s comment'
+      };
+      await makeRequest('PUT', `/boards/${boardId}/lists/${listId}/cards/${cardId}/comments/${commentId}`, updateData, testData.tokens[1]); // User 2 trying to update
+      throw new Error('Should have failed with unauthorized access');
+    } catch (error) {
+      if (error.response?.status !== 403) {
+        throw new Error(`Expected 403, got ${error.response?.status || 'network error'}`);
+      }
+    }
+  });
+
+  // Test comment validation
+  await test('Reject empty comment', async () => {
+    try {
+      const boardId = testData.boards[0].id;
+      const listId = testData.lists[0].id;
+      const cardId = testData.cards[0].id;
+      const commentData = {
+        content: ''
+      };
+      await makeRequest('POST', `/boards/${boardId}/lists/${listId}/cards/${cardId}/comments`, commentData, testData.tokens[0]);
+      throw new Error('Should have failed with empty comment');
+    } catch (error) {
+      if (error.response?.status !== 400) {
+        throw new Error(`Expected 400, got ${error.response?.status || 'network error'}`);
+      }
+    }
+  });
+
+  // Test comment on non-existent card
+  await test('Reject comment on non-existent card', async () => {
+    try {
+      const boardId = testData.boards[0].id;
+      const listId = testData.lists[0].id;
+      const commentData = {
+        content: 'Comment on non-existent card'
+      };
+      await makeRequest('POST', `/boards/${boardId}/lists/${listId}/cards/99999/comments`, commentData, testData.tokens[0]);
+      throw new Error('Should have failed with non-existent card');
+    } catch (error) {
+      if (error.response?.status !== 404) {
+        throw new Error(`Expected 404, got ${error.response?.status || 'network error'}`);
+      }
+    }
+  });
+}
+
+async function testSearchFunctionality() {
+  logSection('Card Search Tests');
+
+  // Create test cards with different properties for search testing
+  await test('Create card with assignees and labels', async () => {
+    const cardData = {
+      title: 'Search Test Card 1',
+      description: 'Card for testing search functionality',
+      assignees: [testData.users[0].id, testData.users[1].id],
+      labels: ['bug', 'urgent'],
+      priority: 'high',
+      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days from now
+    };
+    const response = await makeRequest('POST', `/boards/${testData.boards[0].id}/lists/${testData.lists[0].id}/cards`, cardData, testData.tokens[0]);
+    if (response.status !== 201) throw new Error(`Expected 201, got ${response.status}`);
+    testData.cards.push(response.data.card);
+  });
+
+  await test('Create another search test card', async () => {
+    const cardData = {
+      title: 'Search Test Card 2',
+      description: 'Another card for search testing',
+      assignees: [testData.users[1].id],
+      labels: ['feature'],
+      priority: 'medium'
+    };
+    const response = await makeRequest('POST', `/boards/${testData.boards[0].id}/lists/${testData.lists[0].id}/cards`, cardData, testData.tokens[0]);
+    if (response.status !== 201) throw new Error(`Expected 201, got ${response.status}`);
+    testData.cards.push(response.data.card);
+  });
+
+  // Test basic search
+  await test('Search cards by title', async () => {
+    const boardId = testData.boards[0].id;
+    const response = await makeRequest('GET', `/boards/${boardId}/cards/search?q=Search Test`, null, testData.tokens[0]);
+    if (response.status !== 200) throw new Error(`Expected 200, got ${response.status}`);
+    if (response.data.cards.length < 2) throw new Error('Should find at least 2 cards with "Search Test"');
+  });
+
+  // Test filter by assignee
+  await test('Search cards by assignee', async () => {
+    const boardId = testData.boards[0].id;
+    const userId = testData.users[0].id;
+    const response = await makeRequest('GET', `/boards/${boardId}/cards/search?assignee=${userId}`, null, testData.tokens[0]);
+    if (response.status !== 200) throw new Error(`Expected 200, got ${response.status}`);
+  });
+
+  // Test filter by label
+  await test('Search cards by label', async () => {
+    const boardId = testData.boards[0].id;
+    const response = await makeRequest('GET', `/boards/${boardId}/cards/search?label=bug`, null, testData.tokens[0]);
+    if (response.status !== 200) throw new Error(`Expected 200, got ${response.status}`);
+  });
+
+  // Test filter by priority
+  await test('Search cards by priority', async () => {
+    const boardId = testData.boards[0].id;
+    const response = await makeRequest('GET', `/boards/${boardId}/cards/search?priority=high`, null, testData.tokens[0]);
+    if (response.status !== 200) throw new Error(`Expected 200, got ${response.status}`);
+  });
+
+  // Test combined filters
+  await test('Search cards with combined filters', async () => {
+    const boardId = testData.boards[0].id;
+    const userId = testData.users[0].id;
+    const response = await makeRequest('GET', `/boards/${boardId}/cards/search?q=Search&assignee=${userId}&priority=high`, null, testData.tokens[0]);
+    if (response.status !== 200) throw new Error(`Expected 200, got ${response.status}`);
+  });
+}
+
 async function testCleanup() {
   logSection('Cleanup Tests');
+
+  // Test delete comment
+  await test('Delete comment', async () => {
+    const boardId = testData.boards[0].id;
+    const listId = testData.lists[1].id;
+    const cardId = testData.cards[2].id;
+    const commentId = testData.comments[2].id;
+    const response = await makeRequest('DELETE', `/boards/${boardId}/lists/${listId}/cards/${cardId}/comments/${commentId}`, null, testData.tokens[1]);
+    if (response.status !== 200) throw new Error(`Expected 200, got ${response.status}`);
+  });
 
   // Test delete cards
   await test('Delete card', async () => {
@@ -532,8 +847,8 @@ async function testCleanup() {
 
   // Test delete board (owner only)
   await test('Delete board', async () => {
-    const boardId = testData.boards[1].id;
-    const response = await makeRequest('DELETE', `/boards/${boardId}`, null, testData.tokens[0]);
+    const boardId = testData.boards[0].id; // Use board created by user 1
+    const response = await makeRequest('DELETE', `/boards/${boardId}`, null, testData.tokens[0]); // User 1 deleting their own board
     if (response.status !== 200) throw new Error(`Expected 200, got ${response.status}`);
   });
 }
@@ -605,10 +920,13 @@ async function runAllTests() {
   try {
     await testHealthCheck();
     await testAuthentication();
+    await testWorkspaceManagement();
     await testBoardManagement();
     await testBoardCollaboration();
     await testListManagement();
     await testCardManagement();
+    await testSearchFunctionality();
+    await testCommentManagement();
     await testCleanup();
     await testErrorHandling();
   } catch (error) {

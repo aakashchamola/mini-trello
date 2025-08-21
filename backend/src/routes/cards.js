@@ -11,6 +11,7 @@ router.use(authenticateToken);
 router.post('/boards/:boardId/lists/:listId/cards', canEdit, cardController.createCard);
 router.get('/boards/:boardId/lists/:listId/cards', canRead, cardController.getListCards);
 router.get('/boards/:boardId/cards', canRead, cardController.getBoardCards);
+router.get('/boards/:boardId/cards/search', canRead, cardController.searchBoardCards);
 router.get('/boards/:boardId/lists/:listId/cards/:cardId', canRead, cardController.getCardById);
 router.put('/boards/:boardId/lists/:listId/cards/:cardId', canEdit, cardController.updateCard);
 router.put('/boards/:boardId/lists/:listId/cards/:cardId/move', canEdit, cardController.moveCard);

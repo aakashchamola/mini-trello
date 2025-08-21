@@ -7,6 +7,10 @@ const Board = require('./Board');
 const List = require('./List');
 const Card = require('./Card');
 const BoardMember = require('./BoardMember');
+const Comment = require('./Comment');
+const Workspace = require('./Workspace');
+const WorkspaceMember = require('./WorkspaceMember');
+const Activity = require('./Activity');
 
 // Define model associations
 User.hasMany(Board, {
@@ -87,6 +91,109 @@ BoardMember.belongsTo(User, {
   as: 'inviter'
 });
 
+// Comment associations
+Card.hasMany(Comment, {
+  foreignKey: 'cardId',
+  as: 'comments',
+  onDelete: 'CASCADE'
+});
+
+Comment.belongsTo(Card, {
+  foreignKey: 'cardId',
+  as: 'card'
+});
+
+User.hasMany(Comment, {
+  foreignKey: 'userId',
+  as: 'comments',
+  onDelete: 'CASCADE'
+});
+
+Comment.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'author'
+});
+
+// Workspace associations
+User.hasMany(Workspace, {
+  foreignKey: 'ownerId',
+  as: 'ownedWorkspaces',
+  onDelete: 'CASCADE'
+});
+
+Workspace.belongsTo(User, {
+  foreignKey: 'ownerId',
+  as: 'owner'
+});
+
+Workspace.hasMany(Board, {
+  foreignKey: 'workspaceId',
+  as: 'boards',
+  onDelete: 'CASCADE'
+});
+
+Board.belongsTo(Workspace, {
+  foreignKey: 'workspaceId',
+  as: 'workspace'
+});
+
+// Workspace member associations
+Workspace.hasMany(WorkspaceMember, {
+  foreignKey: 'workspaceId',
+  as: 'members',
+  onDelete: 'CASCADE'
+});
+
+WorkspaceMember.belongsTo(Workspace, {
+  foreignKey: 'workspaceId',
+  as: 'workspace'
+});
+
+User.hasMany(WorkspaceMember, {
+  foreignKey: 'userId',
+  as: 'workspaceMemberships',
+  onDelete: 'CASCADE'
+});
+
+WorkspaceMember.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'user'
+});
+
+User.hasMany(WorkspaceMember, {
+  foreignKey: 'invitedBy',
+  as: 'sentWorkspaceInvitations',
+  onDelete: 'CASCADE'
+});
+
+WorkspaceMember.belongsTo(User, {
+  foreignKey: 'invitedBy',
+  as: 'inviter'
+});
+
+// Activity associations
+Board.hasMany(Activity, {
+  foreignKey: 'boardId',
+  as: 'activities',
+  onDelete: 'CASCADE'
+});
+
+Activity.belongsTo(Board, {
+  foreignKey: 'boardId',
+  as: 'board'
+});
+
+User.hasMany(Activity, {
+  foreignKey: 'userId',
+  as: 'activities',
+  onDelete: 'CASCADE'
+});
+
+Activity.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'user'
+});
+
 // Initialize all models
 const models = {
   User,
@@ -94,13 +201,18 @@ const models = {
   List,
   Card,
   BoardMember,
+  Comment,
+  Workspace,
+  WorkspaceMember,
+  Activity,
   sequelize
 };
 
 // Sync database tables
 const syncDatabase = async (force = false) => {
   try {
-    await sequelize.sync({ force });
+    // Use alter: true to modify existing tables to match models
+    await sequelize.sync({ force, alter: !force });
     console.log('Database synchronized successfully');
   } catch (error) {
     console.error('Database synchronization failed:', error);

@@ -84,6 +84,25 @@ const Card = sequelize.define('Card', {
       }
     }
   },
+  assignees: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: [],
+    validate: {
+      isValidAssignees(value) {
+        if (value && Array.isArray(value)) {
+          for (const assigneeId of value) {
+            if (!Number.isInteger(assigneeId) || assigneeId <= 0) {
+              throw new Error('Each assignee must be a valid user ID');
+            }
+          }
+          if (value.length > 10) {
+            throw new Error('Maximum 10 assignees allowed per card');
+          }
+        }
+      }
+    }
+  },
   listId: {
     type: DataTypes.INTEGER,
     allowNull: false,

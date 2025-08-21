@@ -49,6 +49,18 @@ const createCardSchema = Joi.object({
     .max(10)
     .messages({
       'array.max': 'Maximum 10 labels allowed per card'
+    }),
+  assignees: Joi.array()
+    .items(
+      Joi.number().integer().positive().messages({
+        'number.base': 'Assignee ID must be a number',
+        'number.integer': 'Assignee ID must be an integer',
+        'number.positive': 'Assignee ID must be positive'
+      })
+    )
+    .max(20)
+    .messages({
+      'array.max': 'Maximum 20 assignees allowed per card'
     })
 });
 
@@ -93,6 +105,18 @@ const updateCardSchema = Joi.object({
     .max(10)
     .messages({
       'array.max': 'Maximum 10 labels allowed per card'
+    }),
+  assignees: Joi.array()
+    .items(
+      Joi.number().integer().positive().messages({
+        'number.base': 'Assignee ID must be a number',
+        'number.integer': 'Assignee ID must be an integer',
+        'number.positive': 'Assignee ID must be positive'
+      })
+    )
+    .max(20)
+    .messages({
+      'array.max': 'Maximum 20 assignees allowed per card'
     })
 }).min(1).messages({
   'object.min': 'At least one field must be provided for update'

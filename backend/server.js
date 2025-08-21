@@ -16,6 +16,8 @@ const boardRoutes = require('./src/routes/boards');
 const listRoutes = require('./src/routes/lists');
 const cardRoutes = require('./src/routes/cards');
 const boardCollaborationRoutes = require('./src/routes/boardCollaboration');
+const commentRoutes = require('./src/routes/comments');
+const workspaceRoutes = require('./src/routes/workspaces');
 
 // Create Express application
 const app = express();
@@ -83,6 +85,12 @@ app.use('/api', cardRoutes);
 
 // Board collaboration routes  
 app.use('/api', boardCollaborationRoutes);
+
+// Comment management routes
+app.use('/api', commentRoutes);
+
+// Workspace management routes
+app.use('/api', workspaceRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

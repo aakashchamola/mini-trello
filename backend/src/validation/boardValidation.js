@@ -19,6 +19,15 @@ const createBoardSchema = Joi.object({
     .messages({
       'string.max': 'Description cannot exceed 500 characters'
     }),
+  workspaceId: Joi.number()
+    .integer()
+    .positive()
+    .optional()
+    .messages({
+      'number.base': 'Workspace ID must be a number',
+      'number.integer': 'Workspace ID must be an integer',
+      'number.positive': 'Workspace ID must be positive'
+    }),
   color: Joi.string()
     .pattern(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/)
     .messages({
@@ -44,6 +53,14 @@ const updateBoardSchema = Joi.object({
     .allow('')
     .messages({
       'string.max': 'Description cannot exceed 500 characters'
+    }),
+  workspaceId: Joi.number()
+    .integer()
+    .positive()
+    .messages({
+      'number.base': 'Workspace ID must be a number',
+      'number.integer': 'Workspace ID must be an integer',
+      'number.positive': 'Workspace ID must be positive'
     }),
   color: Joi.string()
     .pattern(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/)

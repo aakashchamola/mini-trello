@@ -1,6 +1,7 @@
 const Card = require('../models/Card');
 const List = require('../models/List');
 const Board = require('../models/Board');
+const User = require('../models/User');
 const { createCardSchema, updateCardSchema, moveCardSchema, reorderCardsSchema } = require('../validation/cardValidation');
 const { Op } = require('sequelize');
 
@@ -71,6 +72,7 @@ const cardController = {
           dueDate: card.dueDate,
           isCompleted: card.isCompleted,
           labels: card.labels,
+          assignees: card.assignees,
           listId: card.listId,
           createdBy: card.createdBy,
           createdAt: card.createdAt,
@@ -249,6 +251,163 @@ const cardController = {
     }
   },
 
+  // Search cards across a board
+  async searchBoardCards(req, res) {
+    try {
+      const { boardId } = req.params;
+      const { 
+        q: searchQuery, 
+        labels, 
+        assignees, 
+        priority, 
+        completed, 
+        dueDate,
+        page = 1, 
+        limit = 20 
+      } = req.query;
+
+      // Board access is already checked by middleware
+      const board = req.board;
+
+      const offset = (page - 1) * limit;
+      const whereClause = {};
+      const searchConditions = [];
+
+      // Text search across title and description
+      if (searchQuery) {
+        searchConditions.push({
+          [Op.or]: [
+            { title: { [Op.like]: `%${searchQuery}%` } },
+            { description: { [Op.like]: `%${searchQuery}%` } }
+          ]
+        });
+      }
+
+      // Filter by labels
+      if (labels) {
+        const labelArray = Array.isArray(labels) ? labels : [labels];
+        searchConditions.push({
+          [Op.or]: labelArray.map(label => ({
+            labels: { [Op.like]: `%"${label}"%` }
+          }))
+        });
+      }
+
+      // Filter by assignees
+      if (assignees) {
+        const assigneeArray = Array.isArray(assignees) ? assignees : [assignees];
+        const assigneeIds = assigneeArray.map(id => parseInt(id)).filter(id => !isNaN(id));
+        if (assigneeIds.length > 0) {
+          searchConditions.push({
+            [Op.or]: assigneeIds.map(assigneeId => ({
+              assignees: { [Op.like]: `%${assigneeId}%` }
+            }))
+          });
+        }
+      }
+
+      // Filter by priority
+      if (priority) {
+        const priorityArray = Array.isArray(priority) ? priority : [priority];
+        whereClause.priority = { [Op.in]: priorityArray };
+      }
+
+      // Filter by completion status
+      if (completed !== undefined) {
+        whereClause.isCompleted = completed === 'true';
+      }
+
+      // Filter by due date
+      if (dueDate) {
+        const today = new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        switch (dueDate) {
+          case 'overdue':
+            whereClause.dueDate = { [Op.lt]: today };
+            whereClause.isCompleted = false;
+            break;
+          case 'today':
+            whereClause.dueDate = { 
+              [Op.gte]: today.toISOString().split('T')[0],
+              [Op.lt]: tomorrow.toISOString().split('T')[0]
+            };
+            break;
+          case 'week':
+            const nextWeek = new Date(today);
+            nextWeek.setDate(nextWeek.getDate() + 7);
+            whereClause.dueDate = { 
+              [Op.gte]: today,
+              [Op.lte]: nextWeek
+            };
+            break;
+          case 'month':
+            const nextMonth = new Date(today);
+            nextMonth.setMonth(nextMonth.getMonth() + 1);
+            whereClause.dueDate = { 
+              [Op.gte]: today,
+              [Op.lte]: nextMonth
+            };
+            break;
+        }
+      }
+
+      // Combine all search conditions
+      if (searchConditions.length > 0) {
+        whereClause[Op.and] = searchConditions;
+      }
+
+      // Get cards from all lists in the board
+      const cards = await Card.findAndCountAll({
+        include: [{
+          model: List,
+          as: 'list',
+          where: { boardId },
+          attributes: ['id', 'title']
+        }, {
+          model: User,
+          as: 'creator',
+          attributes: ['id', 'username', 'email']
+        }],
+        where: whereClause,
+        order: [['updatedAt', 'DESC']],
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        attributes: [
+          'id', 'title', 'description', 'position', 'priority', 
+          'dueDate', 'isCompleted', 'labels', 'assignees', 'listId', 
+          'createdBy', 'createdAt', 'updatedAt'
+        ]
+      });
+
+      res.json({
+        cards: cards.rows,
+        pagination: {
+          currentPage: parseInt(page),
+          limit: parseInt(limit),
+          total: cards.count,
+          totalPages: Math.ceil(cards.count / limit)
+        },
+        boardId: parseInt(boardId),
+        searchQuery,
+        filters: {
+          labels: labels || [],
+          assignees: assignees || [],
+          priority: priority || [],
+          completed,
+          dueDate
+        }
+      });
+    } catch (error) {
+      console.error('Search board cards error:', error);
+      res.status(500).json({
+        error: 'Internal server error',
+        message: 'Failed to search cards'
+      });
+    }
+  },
+
   // Update a card
   async updateCard(req, res) {
     try {
@@ -304,6 +463,7 @@ const cardController = {
           dueDate: card.dueDate,
           isCompleted: card.isCompleted,
           labels: card.labels,
+          assignees: card.assignees,
           listId: card.listId,
           createdBy: card.createdBy,
           createdAt: card.createdAt,
