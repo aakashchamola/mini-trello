@@ -992,8 +992,12 @@ async function testActivityLogging() {
     }
     
     const newValues = JSON.parse(cardUpdateActivity.newValue);
+    console.log('Test Debug - updateData:', updateData);
+    console.log('Test Debug - newValues:', newValues);
+    console.log('Test Debug - newValues.title:', newValues.title);
+    console.log('Test Debug - updateData.title:', updateData.title);
     if (newValues.title !== updateData.title) {
-      throw new Error('New values should match the update data');
+      throw new Error(`New values should match the update data. Expected: "${updateData.title}", Got: "${newValues.title}"`);
     }
   });
 
@@ -1081,6 +1085,64 @@ async function testActivityLogging() {
   });
 }
 
+async function testRealTimeFeatures() {
+  logSection('Real-Time Features Tests');
+
+  // Test real-time system status
+  await test('Get real-time system status', async () => {
+    const response = await makeRequest('GET', '/realtime/status', null, testData.tokens[0]);
+    if (response.status !== 200) throw new Error(`Expected 200, got ${response.status}`);
+    if (!response.data.data.status) throw new Error('Status should be included');
+    if (typeof response.data.data.connectedUsers !== 'number') throw new Error('Connected users should be a number');
+    if (typeof response.data.data.activeBoards !== 'number') throw new Error('Active boards should be a number');
+  });
+
+  // Test board presence
+  await test('Get board presence', async () => {
+    // Use board 0 which should have user 2 invited and accepted
+    const boardId = testData.boards[0].id; // Board created by user 1 with user 2 invited
+    const response = await makeRequest('GET', `/boards/${boardId}/presence`, null, testData.tokens[0]);
+    if (response.status !== 200) throw new Error(`Expected 200, got ${response.status}`);
+    if (!Array.isArray(response.data.data.connectedUsers)) throw new Error('Connected users should be an array');
+    if (typeof response.data.data.totalConnected !== 'number') throw new Error('Total connected should be a number');
+    if (response.data.data.boardId !== boardId) throw new Error('Board ID should match');
+  });
+
+  // Test unauthorized board presence access
+  await test('Reject unauthorized board presence access', async () => {
+    try {
+      // Create a board that user 2 definitely doesn't have access to
+      const newBoardResponse = await makeRequest('POST', '/boards', {
+        title: 'Private Test Board',
+        description: 'Board for testing unauthorized access'
+      }, testData.tokens[0]);
+      
+      if (newBoardResponse.status !== 201) throw new Error('Failed to create test board');
+      const privateBoardId = newBoardResponse.data.board.id;
+      
+      // Try to access with user 2's token (who is definitely not a member)
+      await makeRequest('GET', `/boards/${privateBoardId}/presence`, null, testData.tokens[1]);
+      throw new Error('Should have failed with unauthorized access');
+    } catch (error) {
+      if (error.response?.status !== 403) {
+        throw new Error(`Expected 403, got ${error.response?.status || 'network error'}`);
+      }
+    }
+  });
+
+  // Test real-time endpoint with invalid board
+  await test('Handle invalid board ID for presence', async () => {
+    try {
+      await makeRequest('GET', '/boards/99999/presence', null, testData.tokens[0]);
+      throw new Error('Should have failed with not found');
+    } catch (error) {
+      if (error.response?.status !== 403 && error.response?.status !== 404) {
+        throw new Error(`Expected 403 or 404, got ${error.response?.status || 'network error'}`);
+      }
+    }
+  });
+}
+
 async function testCleanup() {
   logSection('Cleanup Tests');
 
@@ -1097,7 +1159,7 @@ async function testCleanup() {
   // Test delete cards
   await test('Delete card', async () => {
     const boardId = testData.boards[0].id;
-    const listId = testData.lists[2].id;
+    const listId = testData.lists[2].id; // Card was moved to "Done" list in previous test
     const cardId = testData.cards[1].id;
     const response = await makeRequest('DELETE', `/boards/${boardId}/lists/${listId}/cards/${cardId}`, null, testData.tokens[0]);
     if (response.status !== 200) throw new Error(`Expected 200, got ${response.status}`);
@@ -1194,6 +1256,7 @@ async function runAllTests() {
     await testSearchFunctionality();
     await testCommentManagement();
     await testActivityLogging();
+    await testRealTimeFeatures();
     await testCleanup();
     await testErrorHandling();
   } catch (error) {

@@ -482,24 +482,41 @@ const cardController = {
   // Move card to another list
   async moveCard(req, res) {
     try {
+      console.log('moveCard called with params:', req.params);
+      console.log('moveCard called with body:', req.body);
+      
       const { boardId, listId, cardId } = req.params;
-      const { error, value } = moveCardSchema.validate(req.body);
+      
+      // Convert string IDs to numbers before validation
+      const bodyWithNumbers = {
+        ...req.body,
+        targetListId: parseInt(req.body.targetListId),
+        position: parseInt(req.body.position)
+      };
+      
+      const { error, value } = moveCardSchema.validate(bodyWithNumbers);
       
       if (error) {
+        console.log('Validation error:', error.details);
         return res.status(400).json({
           error: 'Validation error',
           details: error.details.map(detail => detail.message)
         });
       }
+      
+      console.log('Validation passed, validated data:', value);
 
       // Board access is already checked by middleware
       const board = req.board;
       if (!board) {
+        console.log('Board not found in req.board');
         return res.status(404).json({
           error: 'Board not found',
           message: 'Board does not exist or you do not have access to it'
         });
       }
+      
+      console.log('Board found:', board.id);
 
       // Verify both source and target lists exist in the board
       const [sourceList, targetList] = await Promise.all([
@@ -508,50 +525,95 @@ const cardController = {
       ]);
 
       if (!sourceList || !targetList) {
+        console.log('Lists not found. Source:', !!sourceList, 'Target:', !!targetList);
         return res.status(404).json({
           error: 'List not found',
           message: 'Source or target list does not exist in this board'
         });
       }
+      
+      console.log('Lists found. Source:', sourceList.id, 'Target:', targetList.id);
 
       const card = await Card.findOne({
         where: { id: cardId, listId }
       });
 
       if (!card) {
+        console.log('Card not found:', cardId, 'in list:', listId);
         return res.status(404).json({
           error: 'Card not found',
           message: 'Card does not exist in the source list'
         });
       }
+      
+      console.log('Card found:', card.id, 'current listId:', card.listId, 'position:', card.position);
+      console.log('Move to listId:', value.targetListId, 'position:', value.position);
 
-      // Move card using transaction
+      // Move card using simplified transaction
       const { sequelize } = require('../config/database');
       await sequelize.transaction(async (t) => {
-        // Remove card from source list (shift positions)
-        await Card.decrement('position', {
-          where: {
-            listId,
-            position: { [Op.gt]: card.position }
-          },
-          transaction: t
-        });
+        const oldPosition = card.position;
+        const oldListId = card.listId;
+        const newPosition = value.position;
+        const newListId = value.targetListId;
 
-        // Make space in target list (shift positions)
-        await Card.increment('position', {
-          where: {
-            listId: value.targetListId,
-            position: { [Op.gte]: value.position }
-          },
-          transaction: t
-        });
+        console.log('Transaction start - oldPos:', oldPosition, 'newPos:', newPosition, 'oldList:', oldListId, 'newList:', newListId);
 
-        // Update card with new list and position
+        if (oldListId !== newListId) {
+          // Moving between different lists - simplified approach
+          console.log('Moving between lists');
+          
+          // Step 1: Shift positions in source list (fill the gap)
+          await Card.decrement('position', {
+            where: {
+              listId: oldListId,
+              position: { [Op.gt]: oldPosition }
+            },
+            transaction: t
+          });
+
+          // Step 2: Make space in target list (shift positions)
+          await Card.increment('position', {
+            where: {
+              listId: newListId,
+              position: { [Op.gte]: newPosition }
+            },
+            transaction: t
+          });
+        } else {
+          // Moving within the same list
+          if (oldPosition < newPosition) {
+            // Moving down - shift cards up
+            await Card.decrement('position', {
+              where: {
+                listId: oldListId,
+                position: { [Op.gt]: oldPosition, [Op.lte]: newPosition }
+              },
+              transaction: t
+            });
+          } else if (oldPosition > newPosition) {
+            // Moving up - shift cards down  
+            await Card.increment('position', {
+              where: {
+                listId: oldListId,
+                position: { [Op.gte]: newPosition, [Op.lt]: oldPosition }
+              },
+              transaction: t
+            });
+          }
+        }
+
+        // Step 3: Update the card itself
         await card.update({
-          listId: value.targetListId,
-          position: value.position
+          listId: newListId,
+          position: newPosition
         }, { transaction: t });
+        
+        console.log('Card move completed');
       });
+
+      // Refresh the card data to return updated info
+      await card.reload();
 
       res.json({
         message: 'Card moved successfully',
@@ -613,15 +675,21 @@ const cardController = {
         });
       }
 
-      // Shift positions of cards after this one
-      await Card.decrement('position', {
-        where: {
-          listId,
-          position: { [Op.gt]: card.position }
-        }
+      // Use transaction to ensure data consistency
+      const { sequelize } = require('../config/database');
+      await sequelize.transaction(async (t) => {
+        // First delete the card
+        await card.destroy({ transaction: t });
+        
+        // Then shift positions of cards after this one
+        await Card.decrement('position', {
+          where: {
+            listId,
+            position: { [Op.gt]: card.position }
+          },
+          transaction: t
+        });
       });
-
-      await card.destroy();
 
       res.json({
         message: 'Card deleted successfully'

@@ -102,6 +102,10 @@ class ActivityLogger {
             actionType = 'deleted';
             entityId = parseInt(boardId);
             description = `${req.user.username} deleted a board`;
+            
+            // For board deletion, we can't log to the deleted board
+            // Skip logging this activity since the board will be gone
+            return;
           }
 
           if (entityId) {
@@ -197,8 +201,10 @@ class ActivityLogger {
               actionType = 'updated';
               if (responseData.card) {
                 entityId = responseData.card.id;
+                // Use only the fields that were actually updated (from req.body)
                 newValue = req.body;
                 description = `${req.user.username} updated card "${responseData.card.title}"`;
+                console.log('Activity logging - newValue:', newValue, 'req.body:', req.body);
               }
             }
           } else if (req.method === 'DELETE') {

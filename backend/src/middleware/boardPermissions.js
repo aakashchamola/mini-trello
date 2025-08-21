@@ -8,20 +8,28 @@ const BoardMember = require('../models/BoardMember');
 const checkBoardAccess = (requiredRole = null) => {
   return async (req, res, next) => {
     try {
+      console.log('checkBoardAccess called with params:', req.params);
+      console.log('checkBoardAccess user:', req.user?.id);
+      console.log('checkBoardAccess requiredRole:', requiredRole);
+      
       const { boardId } = req.params;
       
       // Find board
       const board = await Board.findByPk(boardId);
       
       if (!board) {
+        console.log('Board not found:', boardId);
         return res.status(404).json({
           error: 'Board not found',
           message: 'Board does not exist'
         });
       }
+      
+      console.log('Board found:', board.id, 'owner:', board.userId);
 
       // Check if user is board owner
       if (board.userId === req.user.id) {
+        console.log('User is board owner');
         req.userBoardRole = 'owner';
         req.board = board;
         return next();
@@ -35,17 +43,23 @@ const checkBoardAccess = (requiredRole = null) => {
           status: 'accepted'
         }
       });
+      
+      console.log('Board membership found:', !!membership);
 
       if (!membership) {
+        console.log('Access denied - not a member');
         return res.status(403).json({
           error: 'Access denied',
           message: 'You do not have access to this board'
         });
       }
+      
+      console.log('User role:', membership.role);
 
       // Check role permissions if required
       if (requiredRole) {
         const hasPermission = checkRolePermission(membership.role, requiredRole);
+        console.log('Permission check:', hasPermission, 'for role:', membership.role, 'required:', requiredRole);
         if (!hasPermission) {
           return res.status(403).json({
             error: 'Permission denied',

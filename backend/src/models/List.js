@@ -48,9 +48,6 @@ const List = sequelize.define('List', {
       fields: ['board_id']
     },
     {
-      fields: ['board_id', 'position']
-    },
-    {
       unique: true,
       fields: ['board_id', 'position']
     }

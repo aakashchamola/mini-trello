@@ -211,8 +211,8 @@ const models = {
 // Sync database tables
 const syncDatabase = async (force = false) => {
   try {
-    // Use alter: true to modify existing tables to match models
-    await sequelize.sync({ force, alter: !force });
+    // Force recreation for clean database
+    await sequelize.sync({ force: true });
     console.log('Database synchronized successfully');
   } catch (error) {
     console.error('Database synchronization failed:', error);

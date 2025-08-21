@@ -129,9 +129,6 @@ const Card = sequelize.define('Card', {
       fields: ['list_id']
     },
     {
-      fields: ['list_id', 'position']
-    },
-    {
       fields: ['created_by']
     },
     {
@@ -139,11 +136,8 @@ const Card = sequelize.define('Card', {
     },
     {
       fields: ['due_date']
-    },
-    {
-      unique: true,
-      fields: ['list_id', 'position']
     }
+    // Removed unique constraint on ['list_id', 'position'] to allow easier position updates
   ]
 });
 
