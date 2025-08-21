@@ -1,0 +1,90 @@
+.App {
+  text-align: center;
+  min-height: 100vh;
+}
+
+.App-header {
+  background-color: #026aa7;
+  padding: 20px;
+  color: white;
+}
+
+.App-header h1 {
+  margin: 0;
+  font-size: 2.5rem;
+}
+
+.App-header p {
+  margin: 10px 0 0 0;
+  font-size: 1.2rem;
+  opacity: 0.9;
+}
+
+.App-main {
+  padding: 20px;
+}
+
+.board {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.column {
+  background-color: #ebecf0;
+  border-radius: 8px;
+  padding: 16px;
+  min-width: 280px;
+  flex: 1;
+  max-width: 350px;
+}
+
+.column h2 {
+  margin: 0 0 16px 0;
+  font-size: 1.4rem;
+  color: #172b4d;
+  text-align: center;
+}
+
+.card {
+  background-color: white;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  text-align: left;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.card h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.1rem;
+  color: #172b4d;
+}
+
+.card p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #5e6c84;
+  line-height: 1.4;
+}
+
+@media (max-width: 768px) {
+  .board {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .column {
+    width: 100%;
+    max-width: 400px;
+  }
+}
