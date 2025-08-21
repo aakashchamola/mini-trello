@@ -14,6 +14,7 @@ const { syncDatabase } = require('./src/models');
 const authRoutes = require('./src/routes/auth');
 const boardRoutes = require('./src/routes/boards');
 const listRoutes = require('./src/routes/lists');
+const cardRoutes = require('./src/routes/cards');
 
 // Create Express application
 const app = express();
@@ -72,6 +73,9 @@ app.use('/api/boards', boardRoutes);
 
 // List management routes
 app.use('/api', listRoutes);
+
+// Card management routes
+app.use('/api', cardRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

@@ -5,6 +5,7 @@ const { sequelize } = require('../config/database');
 const User = require('./User');
 const Board = require('./Board');
 const List = require('./List');
+const Card = require('./Card');
 
 // Define model associations
 User.hasMany(Board, {
@@ -29,11 +30,34 @@ List.belongsTo(Board, {
   as: 'board'
 });
 
+List.hasMany(Card, {
+  foreignKey: 'listId',
+  as: 'cards',
+  onDelete: 'CASCADE'
+});
+
+Card.belongsTo(List, {
+  foreignKey: 'listId',
+  as: 'list'
+});
+
+User.hasMany(Card, {
+  foreignKey: 'createdBy',
+  as: 'createdCards',
+  onDelete: 'CASCADE'
+});
+
+Card.belongsTo(User, {
+  foreignKey: 'createdBy',
+  as: 'creator'
+});
+
 // Initialize all models
 const models = {
   User,
   Board,
   List,
+  Card,
   sequelize
 };
 

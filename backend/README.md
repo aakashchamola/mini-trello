@@ -73,6 +73,7 @@ Server runs on `http://localhost:3001`
 - **User Authentication**: Registration, login, JWT tokens
 - **Board Management**: Create, read, update, delete boards with search and pagination
 - **List Management**: Create, read, update, delete, and reorder lists within boards
+- **Card Management**: Full CRUD operations for cards with priorities, labels, due dates, and move between lists
 - **Protected Routes**: Bearer token authentication
 - **Input Validation**: Joi schema validation
 - **Database**: MySQL with Docker or SQLite for local development
@@ -100,6 +101,12 @@ Server runs on `http://localhost:3001`
 - `src/controllers/listController.js` - List CRUD operations with reordering
 - `src/routes/lists.js` - List route definitions within boards
 - `src/validation/listValidation.js` - List input validation schemas
+
+### Card Management System
+- `src/models/Card.js` - Card model with priorities, labels, due dates and list relationships
+- `src/controllers/cardController.js` - Card CRUD operations with move between lists functionality
+- `src/routes/cards.js` - Card route definitions within boards and lists
+- `src/validation/cardValidation.js` - Card input validation schemas with priority and label validation
 
 ### Configuration
 - `src/config/database.js` - Database connection and setup
@@ -129,3 +136,12 @@ Server runs on `http://localhost:3001`
 - `PUT /api/boards/:boardId/lists/:listId` - Update list details (protected)
 - `PUT /api/boards/:boardId/lists/reorder` - Reorder multiple lists (protected)
 - `DELETE /api/boards/:boardId/lists/:listId` - Delete a list (protected)
+
+### Card Management
+- `POST /api/boards/:boardId/lists/:listId/cards` - Create a new card in a list (protected)
+- `GET /api/boards/:boardId/lists/:listId/cards` - Get all cards for a list with filters (protected)
+- `GET /api/boards/:boardId/cards` - Get all cards for a board with filters (protected)
+- `GET /api/boards/:boardId/lists/:listId/cards/:cardId` - Get specific card by ID (protected)
+- `PUT /api/boards/:boardId/lists/:listId/cards/:cardId` - Update card details (protected)
+- `PUT /api/boards/:boardId/lists/:listId/cards/:cardId/move` - Move card to different list (protected)
+- `DELETE /api/boards/:boardId/lists/:listId/cards/:cardId` - Delete a card (protected)
