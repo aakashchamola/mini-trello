@@ -72,6 +72,7 @@ Server runs on `http://localhost:3001`
 
 - **User Authentication**: Registration, login, JWT tokens
 - **Board Management**: Create, read, update, delete boards with search and pagination
+- **Board Collaboration**: Share boards, invite users, manage permissions (admin/editor/viewer)
 - **List Management**: Create, read, update, delete, and reorder lists within boards
 - **Card Management**: Full CRUD operations for cards with priorities, labels, due dates, and move between lists
 - **Protected Routes**: Bearer token authentication
@@ -92,9 +93,16 @@ Server runs on `http://localhost:3001`
 
 ### Board Management System
 - `src/models/Board.js` - Board model with user relationships
-- `src/controllers/boardController.js` - Board CRUD operations
-- `src/routes/boards.js` - Board route definitions
+- `src/controllers/boardController.js` - Board CRUD operations with shared board support
+- `src/routes/boards.js` - Board route definitions with permission middleware
 - `src/validation/boardValidation.js` - Board input validation schemas
+- `src/middleware/boardPermissions.js` - Board access control and permission checking
+
+### Board Collaboration System
+- `src/models/BoardMember.js` - Board member model with roles and invitation status
+- `src/controllers/boardCollaborationController.js` - Board sharing and member management
+- `src/routes/boardCollaboration.js` - Board collaboration route definitions
+- `src/validation/boardCollaborationValidation.js` - Collaboration input validation schemas
 
 ### List Management System
 - `src/models/List.js` - List model with board relationships and position management
@@ -124,10 +132,18 @@ Server runs on `http://localhost:3001`
 
 ### Board Management
 - `POST /api/boards` - Create a new board (protected)
-- `GET /api/boards` - Get user's boards with pagination and search (protected)
-- `GET /api/boards/:id` - Get specific board by ID (protected)
-- `PUT /api/boards/:id` - Update board details (protected)
-- `DELETE /api/boards/:id` - Delete a board (protected)
+- `GET /api/boards` - Get user's boards (owned + shared) with pagination and search (protected)
+- `GET /api/boards/:id` - Get specific board by ID (protected, requires read access)
+- `PUT /api/boards/:id` - Update board details (protected, requires edit access)
+- `DELETE /api/boards/:id` - Delete a board (protected, requires admin access)
+
+### Board Collaboration
+- `POST /api/boards/:boardId/invite` - Invite user to board with role (protected, requires invite permission)
+- `GET /api/boards/:boardId/members` - Get board members list (protected, requires read access)
+- `PUT /api/boards/:boardId/members/:memberId/role` - Update member role (protected, owner only)
+- `DELETE /api/boards/:boardId/members/:memberId` - Remove member from board (protected, owner or self)
+- `PUT /api/boards/:boardId/invitations/:invitationId/respond` - Accept/decline invitation (protected)
+- `GET /api/invitations` - Get user's pending invitations (protected)
 
 ### List Management
 - `POST /api/boards/:boardId/lists` - Create a new list in a board (protected)

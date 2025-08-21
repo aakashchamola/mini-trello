@@ -1,5 +1,7 @@
 const Board = require('../models/Board');
+const BoardMember = require('../models/BoardMember');
 const { createBoardSchema, updateBoardSchema } = require('../validation/boardValidation');
+const { Op } = require('sequelize');
 
 const boardController = {
   // Create a new board
@@ -39,36 +41,83 @@ const boardController = {
     }
   },
 
-  // Get all boards for the authenticated user
+  // Get all boards for the authenticated user (owned + shared)
   async getUserBoards(req, res) {
     try {
-      const { page = 1, limit = 10, search } = req.query;
+      const { page = 1, limit = 10, search, type = 'all' } = req.query;
       const offset = (page - 1) * limit;
 
-      const whereClause = { userId: req.user.id };
-      
+      let whereClause = {};
+      let includeShared = type === 'all' || type === 'shared';
+      let includeOwned = type === 'all' || type === 'owned';
+
       if (search) {
-        const { Op } = require('sequelize');
         whereClause.title = {
           [Op.like]: `%${search}%`
         };
       }
 
-      const { count, rows: boards } = await Board.findAndCountAll({
-        where: whereClause,
-        order: [['updatedAt', 'DESC']],
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-        attributes: ['id', 'title', 'description', 'color', 'isPrivate', 'createdAt', 'updatedAt']
-      });
+      let boards = [];
+      let totalCount = 0;
+
+      // Get owned boards
+      if (includeOwned) {
+        const ownedBoards = await Board.findAll({
+          where: {
+            ...whereClause,
+            userId: req.user.id
+          },
+          attributes: ['id', 'title', 'description', 'color', 'isPrivate', 'createdAt', 'updatedAt'],
+          order: [['updatedAt', 'DESC']]
+        });
+
+        boards = boards.concat(ownedBoards.map(board => ({
+          ...board.toJSON(),
+          role: 'owner',
+          isOwner: true
+        })));
+      }
+
+      // Get shared boards (where user is a member)
+      if (includeShared) {
+        const sharedBoardsData = await BoardMember.findAll({
+          where: {
+            userId: req.user.id,
+            status: 'accepted'
+          },
+          include: [{
+            model: Board,
+            as: 'board',
+            where: whereClause,
+            attributes: ['id', 'title', 'description', 'color', 'isPrivate', 'createdAt', 'updatedAt']
+          }],
+          attributes: ['role'],
+          order: [[{model: Board, as: 'board'}, 'updatedAt', 'DESC']]
+        });
+
+        const sharedBoards = sharedBoardsData.map(membership => ({
+          ...membership.board.toJSON(),
+          role: membership.role,
+          isOwner: false
+        }));
+
+        boards = boards.concat(sharedBoards);
+      }
+
+      // Sort all boards by updatedAt
+      boards.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+
+      // Apply pagination
+      totalCount = boards.length;
+      const paginatedBoards = boards.slice(offset, offset + parseInt(limit));
 
       res.json({
-        boards,
+        boards: paginatedBoards,
         pagination: {
           currentPage: parseInt(page),
-          totalPages: Math.ceil(count / limit),
-          totalBoards: count,
-          hasNext: offset + boards.length < count,
+          totalPages: Math.ceil(totalCount / limit),
+          totalBoards: totalCount,
+          hasNext: offset + paginatedBoards.length < totalCount,
           hasPrev: page > 1
         }
       });

@@ -15,6 +15,7 @@ const authRoutes = require('./src/routes/auth');
 const boardRoutes = require('./src/routes/boards');
 const listRoutes = require('./src/routes/lists');
 const cardRoutes = require('./src/routes/cards');
+const boardCollaborationRoutes = require('./src/routes/boardCollaboration');
 
 // Create Express application
 const app = express();
@@ -76,6 +77,9 @@ app.use('/api', listRoutes);
 
 // Card management routes
 app.use('/api', cardRoutes);
+
+// Board collaboration routes  
+app.use('/api', boardCollaborationRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
