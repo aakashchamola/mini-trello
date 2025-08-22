@@ -1,20 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { 
-  FiHome, 
-  FiTrello, 
-  FiUsers, 
-  FiPlus, 
-  FiStar, 
+import React, { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
+import {
+  FiHome,
+  FiTrello,
+  FiUsers,
+  FiPlus,
+  FiStar,
   FiClock,
   FiSettings,
   FiChevronDown,
-  FiChevronRight
-} from 'react-icons/fi';
-import { useApp } from '../../contexts/AppContext';
-import { useAuth } from '../../contexts/AuthContext';
-import { boardAPI, workspaceAPI } from '../../services/api';
-import './Sidebar.css';
+  FiChevronRight,
+} from "react-icons/fi";
+import { useApp } from "../../contexts/AppContext";
+import { useAuth } from "../../contexts/AuthContext";
+import { boardAPI, workspaceAPI } from "../../services/api";
+import "./Sidebar.css";
 
 const Sidebar = () => {
   const { isSidebarOpen } = useApp();
@@ -26,7 +26,7 @@ const Sidebar = () => {
   const [expandedSections, setExpandedSections] = useState({
     boards: true,
     workspaces: true,
-    starred: true
+    starred: true,
   });
   const [loading, setLoading] = useState(true);
 
@@ -39,26 +39,28 @@ const Sidebar = () => {
       setLoading(true);
       const [boardsRes, workspacesRes] = await Promise.all([
         boardAPI.getUserBoards(),
-        workspaceAPI.getUserWorkspaces()
+        workspaceAPI.getUserWorkspaces(),
       ]);
 
       setBoards(boardsRes.data.boards || []);
       setWorkspaces(workspacesRes.data.workspaces || []);
-      
+
       // Filter starred boards
-      const starred = (boardsRes.data.boards || []).filter(board => board.isStarred);
+      const starred = (boardsRes.data.boards || []).filter(
+        (board) => board.isStarred
+      );
       setStarredBoards(starred);
     } catch (error) {
-      console.error('Failed to fetch sidebar data:', error);
+      console.error("Failed to fetch sidebar data:", error);
     } finally {
       setLoading(false);
     }
   };
 
   const toggleSection = (section) => {
-    setExpandedSections(prev => ({
+    setExpandedSections((prev) => ({
       ...prev,
-      [section]: !prev[section]
+      [section]: !prev[section],
     }));
   };
 
@@ -66,26 +68,26 @@ const Sidebar = () => {
     return location.pathname === path;
   };
 
-  if (!isSidebarOpen) {
-    return null;
-  }
+  // if (!isSidebarOpen) {
+  //   return null;
+  // }
 
   return (
     <div className="sidebar">
       <div className="sidebar-content">
         {/* Main Navigation */}
         <div className="nav-section">
-          <Link 
-            to="/dashboard" 
-            className={`nav-item ${isActive('/dashboard') ? 'active' : ''}`}
+          <Link
+            to="/dashboard"
+            className={`nav-item ${isActive("/dashboard") ? "active" : ""}`}
           >
             <FiHome />
             <span>Dashboard</span>
           </Link>
-          
-          <Link 
-            to="/my-tasks" 
-            className={`nav-item ${isActive('/my-tasks') ? 'active' : ''}`}
+
+          <Link
+            to="/my-tasks"
+            className={`nav-item ${isActive("/my-tasks") ? "active" : ""}`}
           >
             <FiClock />
             <span>My Tasks</span>
@@ -95,26 +97,34 @@ const Sidebar = () => {
         {/* Starred Boards */}
         {starredBoards.length > 0 && (
           <div className="nav-section">
-            <div 
+            <div
               className="section-header"
-              onClick={() => toggleSection('starred')}
+              onClick={() => toggleSection("starred")}
             >
-              {expandedSections.starred ? <FiChevronDown /> : <FiChevronRight />}
+              {expandedSections.starred ? (
+                <FiChevronDown />
+              ) : (
+                <FiChevronRight />
+              )}
               <FiStar />
               <span>Starred Boards</span>
             </div>
-            
+
             {expandedSections.starred && (
               <div className="section-content">
-                {starredBoards.map(board => (
+                {starredBoards.map((board) => (
                   <Link
                     key={board.id}
                     to={`/board/${board.id}`}
-                    className={`nav-item board-item ${isActive(`/board/${board.id}`) ? 'active' : ''}`}
+                    className={`nav-item board-item ${
+                      isActive(`/board/${board.id}`) ? "active" : ""
+                    }`}
                   >
-                    <div 
-                      className="board-color" 
-                      style={{ backgroundColor: board.background_color || '#0079bf' }}
+                    <div
+                      className="board-color"
+                      style={{
+                        backgroundColor: board.background_color || "#0079bf",
+                      }}
                     />
                     <span className="board-title">{board.title}</span>
                   </Link>
@@ -126,32 +136,40 @@ const Sidebar = () => {
 
         {/* Recent Boards */}
         <div className="nav-section">
-          <div 
+          <div
             className="section-header"
-            onClick={() => toggleSection('boards')}
+            onClick={() => toggleSection("boards")}
           >
             {expandedSections.boards ? <FiChevronDown /> : <FiChevronRight />}
             <FiTrello />
             <span>Recent Boards</span>
-            <Link to="/boards/new" className="add-button" title="Create new board">
+            <Link
+              to="/boards/new"
+              className="add-button"
+              title="Create new board"
+            >
               <FiPlus />
             </Link>
           </div>
-          
+
           {expandedSections.boards && (
             <div className="section-content">
               {loading ? (
                 <div className="loading-item">Loading boards...</div>
               ) : boards.length > 0 ? (
-                boards.slice(0, 10).map(board => (
+                boards.slice(0, 10).map((board) => (
                   <Link
                     key={board.id}
                     to={`/board/${board.id}`}
-                    className={`nav-item board-item ${isActive(`/board/${board.id}`) ? 'active' : ''}`}
+                    className={`nav-item board-item ${
+                      isActive(`/board/${board.id}`) ? "active" : ""
+                    }`}
                   >
-                    <div 
-                      className="board-color" 
-                      style={{ backgroundColor: board.background_color || '#0079bf' }}
+                    <div
+                      className="board-color"
+                      style={{
+                        backgroundColor: board.background_color || "#0079bf",
+                      }}
                     />
                     <span className="board-title">{board.title}</span>
                   </Link>
@@ -164,7 +182,7 @@ const Sidebar = () => {
                   </Link>
                 </div>
               )}
-              
+
               {boards.length > 10 && (
                 <Link to="/boards" className="nav-item view-all">
                   View all boards ({boards.length})
@@ -176,53 +194,68 @@ const Sidebar = () => {
 
         {/* Workspaces */}
         <div className="nav-section">
-          <div 
+          <div
             className="section-header"
-            onClick={() => toggleSection('workspaces')}
+            onClick={() => toggleSection("workspaces")}
           >
-            {expandedSections.workspaces ? <FiChevronDown /> : <FiChevronRight />}
+            {expandedSections.workspaces ? (
+              <FiChevronDown />
+            ) : (
+              <FiChevronRight />
+            )}
             <FiUsers />
             <span>Workspaces</span>
-            <Link to="/workspaces/new" className="add-button" title="Create new workspace">
+            <Link
+              to="/workspaces/new"
+              className="add-button"
+              title="Create new workspace"
+            >
               <FiPlus />
             </Link>
           </div>
-          
+
           {expandedSections.workspaces && (
             <div className="section-content">
               {loading ? (
                 <div className="loading-item">Loading workspaces...</div>
               ) : workspaces.length > 0 ? (
-                workspaces.map(workspace => (
+                workspaces.map((workspace) => (
                   <div key={workspace.id} className="workspace-item">
                     <Link
                       to={`/workspace/${workspace.id}`}
-                      className={`nav-item ${isActive(`/workspace/${workspace.id}`) ? 'active' : ''}`}
+                      className={`nav-item ${
+                        isActive(`/workspace/${workspace.id}`) ? "active" : ""
+                      }`}
                     >
                       <div className="workspace-avatar">
                         {workspace.name.charAt(0).toUpperCase()}
                       </div>
                       <span className="workspace-name">{workspace.name}</span>
                     </Link>
-                    
+
                     {workspace.boards && workspace.boards.length > 0 && (
                       <div className="workspace-boards">
-                        {workspace.boards.slice(0, 5).map(board => (
+                        {workspace.boards.slice(0, 5).map((board) => (
                           <Link
                             key={board.id}
                             to={`/board/${board.id}`}
-                            className={`workspace-board ${isActive(`/board/${board.id}`) ? 'active' : ''}`}
+                            className={`workspace-board ${
+                              isActive(`/board/${board.id}`) ? "active" : ""
+                            }`}
                           >
-                            <div 
-                              className="board-color-mini" 
-                              style={{ backgroundColor: board.background_color || '#0079bf' }}
+                            <div
+                              className="board-color-mini"
+                              style={{
+                                backgroundColor:
+                                  board.background_color || "#0079bf",
+                              }}
                             />
                             <span>{board.title}</span>
                           </Link>
                         ))}
                         {workspace.boards.length > 5 && (
-                          <Link 
-                            to={`/workspace/${workspace.id}`} 
+                          <Link
+                            to={`/workspace/${workspace.id}`}
                             className="view-more"
                           >
                             +{workspace.boards.length - 5} more
@@ -246,9 +279,9 @@ const Sidebar = () => {
 
         {/* Settings */}
         <div className="nav-section">
-          <Link 
-            to="/settings" 
-            className={`nav-item ${isActive('/settings') ? 'active' : ''}`}
+          <Link
+            to="/settings"
+            className={`nav-item ${isActive("/settings") ? "active" : ""}`}
           >
             <FiSettings />
             <span>Settings</span>

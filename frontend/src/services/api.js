@@ -80,27 +80,39 @@ export const authAPI = {
 export const workspaceAPI = {
   getAll: (params = {}) => api.get('/workspaces', { params }),
   getUserWorkspaces: (params = {}) => api.get('/workspaces', { params }), // Backend endpoint gets user's workspaces by default
+  getWorkspace: (id, params = {}) => api.get(`/workspaces/${id}`, { params }),
   getById: (id, params = {}) => api.get(`/workspaces/${id}`, { params }),
   create: (data) => api.post('/workspaces', data),
+  createWorkspace: (data) => api.post('/workspaces', data), // Alias for create
   update: (id, data) => api.put(`/workspaces/${id}`, data),
+  updateWorkspace: (id, data) => api.put(`/workspaces/${id}`, data), // Alias for update
   delete: (id) => api.delete(`/workspaces/${id}`),
+  deleteWorkspace: (id) => api.delete(`/workspaces/${id}`), // Alias for delete
   invite: (id, data) => api.post(`/workspaces/${id}/invite`, data),
-  getMembers: (id, params = {}) => api.get(`/workspaces/${id}/members`, { params })
+  getMembers: (id, params = {}) => api.get(`/workspaces/${id}/members`, { params }),
+  getWorkspaceMembers: (id, params = {}) => api.get(`/workspaces/${id}/members`, { params }) // Alias for getMembers
 };
 
 // Board API methods
 export const boardAPI = {
   getAll: (params = {}) => api.get('/boards', { params }),
+  getBoard: (id, params = {}) => api.get(`/boards/${id}`, { params }),
   getById: (id, params = {}) => api.get(`/boards/${id}`, { params }),
   getUserBoards: (params = {}) => api.get('/boards', { params }),
   create: (data) => api.post('/boards', data),
   createBoard: (data) => api.post('/boards', data), // Alias for create
   update: (id, data) => api.put(`/boards/${id}`, data),
+  updateBoard: (id, data) => api.put(`/boards/${id}`, data), // Alias for update
   delete: (id) => api.delete(`/boards/${id}`),
+  deleteBoard: (id) => api.delete(`/boards/${id}`), // Alias for delete
   toggleStar: (id) => api.put(`/boards/${id}/star`),
+  starBoard: (id) => api.put(`/boards/${id}/star`),
+  unstarBoard: (id) => api.delete(`/boards/${id}/star`),
   invite: (boardId, data) => api.post(`/boards/${boardId}/invite`, data),
   getMembers: (boardId, params = {}) => api.get(`/boards/${boardId}/members`, { params }),
+  getBoardMembers: (boardId, params = {}) => api.get(`/boards/${boardId}/members`, { params }),
   getActivities: (boardId, params = {}) => api.get(`/boards/${boardId}/activities`, { params }),
+  getBoardActivities: (boardId, params = {}) => api.get(`/boards/${boardId}/activities`, { params }),
   getPresence: (boardId) => api.get(`/boards/${boardId}/presence`)
 };
 

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import { FiX } from 'react-icons/fi';
-import { boardAPI } from '../../services/api';
+import { toast } from 'react-toastify';
+import { useCreateBoard } from '../../hooks/useBoards';
 import LoadingSpinner from '../common/LoadingSpinner';
 import './CreateBoardModal.css';
 
@@ -20,7 +21,7 @@ const CreateBoardSchema = Yup.object().shape({
 });
 
 const CreateBoardModal = ({ onClose, onBoardCreated, workspaces = [] }) => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const createBoardMutation = useCreateBoard();
 
   const backgroundColors = [
     '#0079bf', '#026aa7', '#4c9aff', '#0065ff',
@@ -31,8 +32,6 @@ const CreateBoardModal = ({ onClose, onBoardCreated, workspaces = [] }) => {
 
   const handleSubmit = async (values, { setFieldError }) => {
     try {
-      setIsSubmitting(true);
-      
       const boardData = {
         title: values.title.trim(),
         description: values.description?.trim() || '',
@@ -40,17 +39,24 @@ const CreateBoardModal = ({ onClose, onBoardCreated, workspaces = [] }) => {
         workspaceId: values.workspaceId ? parseInt(values.workspaceId) : undefined
       };
 
-      console.log('Creating board with data:', boardData);
+      console.log('Creating board with React Query mutation:', boardData);
       
-      const response = await boardAPI.createBoard(boardData);
-      console.log('Board creation response:', response);
+      const newBoard = await createBoardMutation.mutateAsync(boardData);
+      console.log('Board created successfully:', newBoard);
       
-      // Handle different response structures
-      const newBoard = response.data?.board || response.data?.data || response.data;
-      onBoardCreated(newBoard);
+      // Call the callback with the new board
+      if (onBoardCreated) {
+        onBoardCreated(newBoard);
+      }
+      
+      // Close the modal
+      onClose();
     } catch (error) {
       console.error('Board creation error:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to create board';
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to create board';
+      
+      // Show error toast
+      toast.error(errorMessage);
       
       if (error.response?.data?.errors) {
         // Handle validation errors
@@ -61,8 +67,6 @@ const CreateBoardModal = ({ onClose, onBoardCreated, workspaces = [] }) => {
       } else {
         setFieldError('title', errorMessage);
       }
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -166,16 +170,16 @@ const CreateBoardModal = ({ onClose, onBoardCreated, workspaces = [] }) => {
                   type="button"
                   className="cancel-btn"
                   onClick={onClose}
-                  disabled={isSubmitting}
+                  disabled={createBoardMutation.isPending}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   className="create-btn"
-                  disabled={isSubmitting || !values.title.trim()}
+                  disabled={createBoardMutation.isPending || !values.title.trim()}
                 >
-                  {isSubmitting ? (
+                  {createBoardMutation.isPending ? (
                     <LoadingSpinner size="small" />
                   ) : (
                     'Create Board'

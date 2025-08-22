@@ -210,36 +210,62 @@ const BoardPage = () => {
         
       } else if (type === 'card') {
         // Move card between lists or reorder within list
-        const sourceListId = source.droppableId;
-        const destinationListId = destination.droppableId;
+        const sourceListStableId = source.droppableId;
+        const destinationListStableId = destination.droppableId;
+
+        // Helper function to find real list ID from stable ID
+        const findListByStableId = (stableId) => {
+          return currentBoard.lists.find(list => 
+            String(list.clientId || list.id) === String(stableId)
+          );
+        };
+
+        // Helper function to find real card ID from stable ID
+        const findCardByStableId = (stableId, listCards) => {
+          return listCards.find(card => 
+            String(card.clientId || card.id) === String(stableId)
+          );
+        };
+
+        // Find real list objects using stable IDs
+        const sourceList = findListByStableId(sourceListStableId);
+        const destinationList = findListByStableId(destinationListStableId);
+
+        if (!sourceList || !destinationList) {
+          console.error('Could not find source or destination list');
+          return;
+        }
+
+        const sourceListId = sourceList.id;
+        const destinationListId = destinationList.id;
 
         console.log('Moving card:', draggableId, 'from list', sourceListId, 'to list', destinationListId);
 
         if (sourceListId === destinationListId) {
           console.log('Reordering card within same list');
           
-          // Find the source list
-          const sourceList = currentBoard.lists.find(l => String(l.id) === sourceListId);
-          if (!sourceList) {
-            console.error('Source list not found:', sourceListId);
-            return;
-          }
-          
           // Reorder cards within the same list
           const newCards = Array.from(sourceList.cards);
           const [movedCard] = newCards.splice(source.index, 1);
           newCards.splice(destination.index, 0, movedCard);
 
+          // Find the real card ID
+          const realCard = findCardByStableId(draggableId, sourceList.cards);
+          if (!realCard) {
+            console.error('Could not find card with stable ID:', draggableId);
+            return;
+          }
+
           // Update local state
           setCurrentBoard(prevBoard => ({
             ...prevBoard,
             lists: prevBoard.lists.map(l =>
-              String(l.id) === sourceListId ? { ...l, cards: newCards } : l
+              l.id === sourceListId ? { ...l, cards: newCards } : l
             )
           }));
 
-          // Update position on server
-          await cardAPI.update(boardId, sourceListId, draggableId, {
+          // Update position on server using real IDs
+          await cardAPI.update(boardId, sourceListId, realCard.id, {
             position: destination.index * 1024
           });
           console.log('Card reorder completed successfully');
@@ -247,20 +273,19 @@ const BoardPage = () => {
         } else {
           console.log('Moving card between different lists');
           
-          // Find source and destination lists
-          const sourceList = currentBoard.lists.find(l => String(l.id) === sourceListId);
-          const destinationList = currentBoard.lists.find(l => String(l.id) === destinationListId);
-          
-          if (!sourceList || !destinationList) {
-            console.error('Lists not found:', { sourceListId, destinationListId });
-            return;
-          }
-          
           // Move card between lists
           const sourceCards = Array.from(sourceList.cards);
           const destinationCards = Array.from(destinationList.cards);
           
           const [movedCard] = sourceCards.splice(source.index, 1);
+          
+          // Find the real card ID
+          const realCard = findCardByStableId(draggableId, sourceList.cards);
+          if (!realCard) {
+            console.error('Could not find card with stable ID:', draggableId);
+            return;
+          }
+          
           destinationCards.splice(destination.index, 0, { 
             ...movedCard, 
             listId: destinationListId 
@@ -270,17 +295,17 @@ const BoardPage = () => {
           setCurrentBoard(prevBoard => ({
             ...prevBoard,
             lists: prevBoard.lists.map(l => {
-              if (String(l.id) === sourceListId) {
+              if (l.id === sourceListId) {
                 return { ...l, cards: sourceCards };
-              } else if (String(l.id) === destinationListId) {
+              } else if (l.id === destinationListId) {
                 return { ...l, cards: destinationCards };
               }
               return l;
             })
           }));
 
-          // Move card on server
-          await cardAPI.move(boardId, sourceListId, draggableId, {
+          // Move card on server using real IDs
+          await cardAPI.move(boardId, sourceListId, realCard.id, {
             targetListId: destinationListId,
             position: destination.index * 1024
           });
@@ -532,8 +557,9 @@ const BoardPage = () => {
               >
                 {filteredLists.map((list, index) => {
                   console.log(`Rendering list ${list.id} with ${list.cards?.length || 0} cards`);
+                  const stableId = list.clientId || list.id;
                   return (
-                    <Draggable key={String(list.id)} draggableId={String(list.id)} index={index}>
+                    <Draggable key={String(stableId)} draggableId={String(stableId)} index={index}>
                       {(provided, snapshot) => (
                         <div
                           ref={provided.innerRef}

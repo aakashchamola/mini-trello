@@ -4,6 +4,13 @@ import { useApp } from '../contexts/AppContext';
 import socketService from '../services/socket';
 import { debounce } from '../utils/helpers';
 
+// Export React Query hooks
+export * from './useBoards';
+export * from './useWorkspaces';
+export * from './useLists';
+export * from './useCards';
+export { queryKeys } from './queryKeys';
+
 // Custom hook for local storage
 export const useLocalStorage = (key, initialValue) => {
   const [storedValue, setStoredValue] = useState(() => {

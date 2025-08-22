@@ -3,10 +3,11 @@ import { Droppable, Draggable } from 'react-beautiful-dnd';
 import { FiPlus, FiMoreHorizontal, FiEdit2, FiTrash2, FiCheck, FiX } from 'react-icons/fi';
 import CardItem from './CardItem';
 import AddCardForm from '../forms/AddCardForm';
-import { listAPI } from '../../services/api';
+import { useUpdateList, useDeleteList } from '../../hooks';
 import './BoardList.css';
+import './BoardEnhancements.css';
 
-const BoardList = ({ 
+const BoardListNew = ({ 
   list, 
   onCardClick, 
   boardId, 
@@ -14,21 +15,22 @@ const BoardList = ({
   onCardUpdated, 
   onCardDeleted, 
   onListUpdated, 
-  onListDeleted 
+  onListDeleted,
+  isLoading = false
 }) => {
   const [showAddCard, setShowAddCard] = useState(false);
   const [showListMenu, setShowListMenu] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitle, setEditTitle] = useState(list.title);
-  const [isUpdating, setIsUpdating] = useState(false);
+
+  // React Query mutations
+  const updateListMutation = useUpdateList();
+  const deleteListMutation = useDeleteList();
 
   const handleCardAdded = (newCard) => {
     console.log('BoardList: handleCardAdded called with:', newCard, 'for list:', list.id);
-    // Notify parent component to update the board state
     if (onCardAdded) {
       onCardAdded(newCard, list.id);
-    } else {
-      console.error('BoardList: onCardAdded callback not provided');
     }
     setShowAddCard(false);
   };
@@ -53,22 +55,21 @@ const BoardList = ({
     }
 
     try {
-      setIsUpdating(true);
-      const response = await listAPI.update(boardId, list.id, {
-        title: editTitle.trim()
+      await updateListMutation.mutateAsync({
+        boardId,
+        listId: list.id,
+        updates: { title: editTitle.trim() }
       });
-      
-      const updatedList = response.data?.list || response.data?.data || response.data;
-      if (onListUpdated) {
-        onListUpdated(updatedList);
-      }
       setIsEditingTitle(false);
+      
+      // Notify parent if needed
+      if (onListUpdated) {
+        onListUpdated(list.id, { title: editTitle.trim() });
+      }
     } catch (error) {
       console.error('Failed to update list title:', error);
       setEditTitle(list.title);
       setIsEditingTitle(false);
-    } finally {
-      setIsUpdating(false);
     }
   };
 
@@ -78,13 +79,14 @@ const BoardList = ({
     }
 
     try {
-      await listAPI.delete(boardId, list.id);
+      await deleteListMutation.mutateAsync({ boardId, listId: list.id });
+      
+      // Notify parent if needed
       if (onListDeleted) {
         onListDeleted(list.id);
       }
     } catch (error) {
       console.error('Failed to delete list:', error);
-      alert('Failed to delete list. Please try again.');
     }
   };
 
@@ -97,8 +99,10 @@ const BoardList = ({
     }
   };
 
+  const isUpdating = updateListMutation.isLoading || deleteListMutation.isLoading;
+
   return (
-    <div className="board-list">
+    <div className={`board-list ${isLoading ? 'loading' : ''}`}>
       <div className="list-header">
         {isEditingTitle ? (
           <div className="list-title-edit">
@@ -140,11 +144,15 @@ const BoardList = ({
               title="Click to edit"
             >
               {list.title}
+              {list.cards && (
+                <span className="card-count">{list.cards.length}</span>
+              )}
             </h3>
             <div className="list-actions">
               <button 
                 className="list-menu-btn"
                 onClick={() => setShowListMenu(!showListMenu)}
+                disabled={isUpdating}
               >
                 <FiMoreHorizontal />
               </button>
@@ -156,6 +164,7 @@ const BoardList = ({
                       setShowListMenu(false);
                     }}
                     className="menu-item"
+                    disabled={isUpdating}
                   >
                     <FiEdit2 />
                     Edit Title
@@ -166,6 +175,7 @@ const BoardList = ({
                       setShowListMenu(false);
                     }}
                     className="menu-item delete"
+                    disabled={isUpdating}
                   >
                     <FiTrash2 />
                     Delete List
@@ -177,19 +187,19 @@ const BoardList = ({
         )}
       </div>
 
-      <Droppable droppableId={String(list.clientId || list.id)} type="card" isDropDisabled={false}>
+      <Droppable droppableId={String(list.id)} type="card" isDropDisabled={isLoading}>
         {(provided, snapshot) => (
           <div
-            className={`list-cards ${snapshot.isDraggingOver ? 'dragging-over' : ''}`}
+            className={`list-cards ${snapshot.isDraggingOver ? 'dragging-over' : ''} ${isLoading ? 'loading' : ''}`}
             {...provided.droppableProps}
             ref={provided.innerRef}
           >
             {list.cards?.map((card, index) => (
               <Draggable 
-                key={String(card.clientId || card.id)} 
-                draggableId={String(card.clientId || card.id)} 
+                key={String(card.id)} 
+                draggableId={String(card.id)} 
                 index={index}
-                isDragDisabled={false}
+                isDragDisabled={isLoading}
               >
                 {(provided, snapshot) => (
                   <div
@@ -209,12 +219,20 @@ const BoardList = ({
                       onDeleted={handleCardDeleted}
                       boardId={boardId}
                       listId={list.id}
+                      isLoading={isLoading}
                     />
                   </div>
                 )}
               </Draggable>
             ))}
             {provided.placeholder}
+            
+            {/* Loading indicator for cards */}
+            {isLoading && (
+              <div className="list-loading">
+                <div className="loading-placeholder">Loading cards...</div>
+              </div>
+            )}
           </div>
         )}
       </Droppable>
@@ -226,19 +244,28 @@ const BoardList = ({
             boardId={boardId}
             onCardAdded={handleCardAdded}
             onCancel={() => setShowAddCard(false)}
+            isLoading={isLoading}
           />
         ) : (
           <button
             className="add-card-btn"
             onClick={() => setShowAddCard(true)}
+            disabled={isLoading || isUpdating}
           >
             <FiPlus />
             Add a card
           </button>
         )}
       </div>
+
+      {/* Mutation loading overlay */}
+      {isUpdating && (
+        <div className="list-updating-overlay">
+          <div className="updating-spinner"></div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default BoardList;
+export default BoardListNew;

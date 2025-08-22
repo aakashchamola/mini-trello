@@ -310,12 +310,12 @@
 }
 
 /* Empty State */
-.empty-state {
+/* .empty-state {
   text-align: center;
   padding: 60px 20px;
   color: #666;
   grid-column: 1 / -1;
-}
+} */
 
 .empty-state h3 {
   font-size: 20px;

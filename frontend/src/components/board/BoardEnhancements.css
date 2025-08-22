@@ -1,0 +1,166 @@
+/* Additional styles for React Query enhanced components */
+
+.board-list.loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.board-list .list-title .card-count {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
+  font-weight: 500;
+}
+
+.list-cards.loading {
+  position: relative;
+}
+
+.list-loading {
+  padding: 16px;
+  text-align: center;
+}
+
+.loading-placeholder {
+  background: #f4f5f7;
+  padding: 12px;
+  border-radius: 8px;
+  color: #6b778c;
+  font-size: 14px;
+  animation: pulse 2s infinite;
+}
+
+.list-updating-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  z-index: 10;
+}
+
+.updating-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #ddd;
+  border-top: 2px solid #0079bf;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Board page enhancements */
+.board-lists.is-dragging {
+  cursor: grabbing;
+}
+
+.board-lists.is-dragging-over {
+  background: rgba(0, 121, 191, 0.1);
+  border-radius: 8px;
+}
+
+/* Card item loading states */
+.card-item.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Add list form loading state */
+.add-list-form.loading {
+  opacity: 0.7;
+}
+
+.add-list-form.loading input,
+.add-list-form.loading button {
+  pointer-events: none;
+}
+
+/* Enhanced activity sidebar */
+.activity-sidebar .activity-item {
+  transition: background-color 0.2s ease;
+}
+
+.activity-sidebar .activity-item:hover {
+  background: #f8f9fa;
+}
+
+/* Modal loading states */
+.card-modal.loading .modal-content {
+  opacity: 0.7;
+}
+
+.card-modal.loading .modal-content input,
+.card-modal.loading .modal-content textarea,
+.card-modal.loading .modal-content button {
+  pointer-events: none;
+}
+
+/* Optimistic update indicators */
+.card-item.optimistic {
+  border-left: 3px solid #0079bf;
+  background: rgba(0, 121, 191, 0.05);
+}
+
+.board-list.optimistic {
+  border: 2px dashed #0079bf;
+  background: rgba(0, 121, 191, 0.05);
+}
+
+/* Error states */
+.board-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 60vh;
+  text-align: center;
+  color: #6b778c;
+}
+
+.board-error h2 {
+  color: #172b4d;
+  margin-bottom: 8px;
+}
+
+.board-error p {
+  margin-bottom: 24px;
+  max-width: 400px;
+  line-height: 1.5;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .board-lists {
+    padding: 16px;
+    gap: 12px;
+  }
+  
+  .board-list {
+    min-width: 280px;
+  }
+  
+  .list-updating-overlay {
+    border-radius: 4px;
+  }
+}
