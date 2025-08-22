@@ -11,7 +11,7 @@ import {
   FiList
 } from 'react-icons/fi';
 import { useAuth } from '../contexts/AuthContext';
-import { useUserBoards, useUserWorkspaces, useCreateBoard, useToggleStarBoard } from '../hooks';
+import { useUserBoards, useUserWorkspaces, useToggleStarBoard } from '../hooks';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import BoardCard from '../components/board/BoardCard';
 import CreateBoardModal from '../components/forms/CreateBoardModal';
@@ -33,7 +33,6 @@ const DashboardPage = () => {
     isLoading: workspacesLoading 
   } = useUserWorkspaces();
   
-  const createBoardMutation = useCreateBoard();
   const toggleStarMutation = useToggleStarBoard();
   
   // Local UI state
@@ -76,15 +75,6 @@ const DashboardPage = () => {
   const handleBoardCreated = (newBoard) => {
     setShowCreateModal(false);
     navigate(`/boards/${newBoard.id}`);
-  };
-
-  const handleCreateBoard = async (boardData) => {
-    try {
-      const newBoard = await createBoardMutation.mutateAsync(boardData);
-      handleBoardCreated(newBoard);
-    } catch (error) {
-      console.error('Failed to create board:', error);
-    }
   };
 
   const handleStarToggle = async (boardId, isStarred) => {
@@ -256,6 +246,16 @@ const DashboardPage = () => {
                   isStarLoading={toggleStarMutation.isLoading}
                 />
               ))}
+              {/* Create Board Card */}
+              <div 
+                className="create-board-card"
+                onClick={() => setShowCreateModal(true)}
+              >
+                <div className="create-board-content">
+                  <FiPlus className="create-board-icon" />
+                  <span>Create new board</span>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -322,10 +322,8 @@ const DashboardPage = () => {
       {/* Create Board Modal */}
       {showCreateModal && (
         <CreateBoardModal
-          isOpen={showCreateModal}
           onClose={() => setShowCreateModal(false)}
-          onSubmit={handleCreateBoard}
-          isLoading={createBoardMutation.isLoading}
+          onBoardCreated={handleBoardCreated}
           workspaces={workspaces}
         />
       )}

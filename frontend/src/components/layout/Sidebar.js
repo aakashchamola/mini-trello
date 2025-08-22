@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   FiHome,
@@ -13,48 +13,32 @@ import {
 } from "react-icons/fi";
 import { useApp } from "../../contexts/AppContext";
 import { useAuth } from "../../contexts/AuthContext";
-import { boardAPI, workspaceAPI } from "../../services/api";
+import { useUserBoards, useUserWorkspaces } from "../../hooks";
+import CreateBoardModal from "../forms/CreateBoardModal";
 import "./Sidebar.css";
 
 const Sidebar = () => {
   const { isSidebarOpen } = useApp();
   const { user } = useAuth();
   const location = useLocation();
-  const [boards, setBoards] = useState([]);
-  const [workspaces, setWorkspaces] = useState([]);
-  const [starredBoards, setStarredBoards] = useState([]);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
     boards: true,
     workspaces: true,
     starred: true,
   });
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchSidebarData();
-  }, []);
+  // Use React Query hooks for real-time data
+  const { data: boards = [], isLoading: boardsLoading } = useUserBoards();
+  const { data: workspaces = [], isLoading: workspacesLoading } = useUserWorkspaces();
 
-  const fetchSidebarData = async () => {
-    try {
-      setLoading(true);
-      const [boardsRes, workspacesRes] = await Promise.all([
-        boardAPI.getUserBoards(),
-        workspaceAPI.getUserWorkspaces(),
-      ]);
+  // Filter starred boards from the boards data
+  const starredBoards = boards.filter(board => board.isStarred || board.is_starred);
+  const loading = boardsLoading || workspacesLoading;
 
-      setBoards(boardsRes.data.boards || []);
-      setWorkspaces(workspacesRes.data.workspaces || []);
-
-      // Filter starred boards
-      const starred = (boardsRes.data.boards || []).filter(
-        (board) => board.isStarred
-      );
-      setStarredBoards(starred);
-    } catch (error) {
-      console.error("Failed to fetch sidebar data:", error);
-    } finally {
-      setLoading(false);
-    }
+  const handleBoardCreated = (newBoard) => {
+    setShowCreateModal(false);
+    // React Query will automatically update the cache, no manual update needed
   };
 
   const toggleSection = (section) => {
@@ -123,7 +107,7 @@ const Sidebar = () => {
                     <div
                       className="board-color"
                       style={{
-                        backgroundColor: board.background_color || "#0079bf",
+                        backgroundColor: board.color || board.background_color || "#0079bf",
                       }}
                     />
                     <span className="board-title-side">{board.title}</span>
@@ -143,13 +127,16 @@ const Sidebar = () => {
             {expandedSections.boards ? <FiChevronDown /> : <FiChevronRight />}
             <FiTrello />
             <span>Recent Boards</span>
-            <Link
-              to="/boards/new"
+            <button
               className="add-button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowCreateModal(true);
+              }}
               title="Create new board"
             >
               <FiPlus />
-            </Link>
+            </button>
           </div>
 
           {expandedSections.boards && (
@@ -168,7 +155,7 @@ const Sidebar = () => {
                     <div
                       className="board-color"
                       style={{
-                        backgroundColor: board.background_color || "#0079bf",
+                        backgroundColor: board.color || board.background_color || "#0079bf",
                       }}
                     />
                     <span className="board-title-side">{board.title}</span>
@@ -247,7 +234,7 @@ const Sidebar = () => {
                               className="board-color-mini"
                               style={{
                                 backgroundColor:
-                                  board.background_color || "#0079bf",
+                                  board.color || board.background_color || "#0079bf",
                               }}
                             />
                             <span>{board.title}</span>
@@ -288,6 +275,15 @@ const Sidebar = () => {
           </Link>
         </div>
       </div>
+
+      {/* Create Board Modal */}
+      {showCreateModal && (
+        <CreateBoardModal
+          onClose={() => setShowCreateModal(false)}
+          onBoardCreated={handleBoardCreated}
+          workspaces={workspaces}
+        />
+      )}
     </div>
   );
 };

@@ -282,8 +282,17 @@ const BoardPageNew = () => {
 
   const selectedCard = modals.cardDetails;
 
+  // Get board background color with gradient
+  const boardBackgroundColor = boardData?.color || '#0079bf';
+  const gradientStyle = {
+    background: `linear-gradient(135deg, ${boardBackgroundColor} 0%, ${boardBackgroundColor}dd 100%)`
+  };
+
   return (
-    <div className="board-page">
+    <div 
+      className="board-page"
+      style={gradientStyle}
+    >
       <BoardHeader
         board={boardData}
         members={boardMembers}
