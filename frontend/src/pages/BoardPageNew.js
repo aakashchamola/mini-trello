@@ -19,6 +19,7 @@ import {
   useDeleteCard,
   useMoveCard
 } from '../hooks';
+import { calculateNewPosition, calculateReorderPositions } from '../utils/positionUtils';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import BoardHeader from '../components/board/BoardHeader';
 import BoardListNew from '../components/board/BoardListNew';
@@ -132,6 +133,11 @@ const BoardPageNew = () => {
 
   // Drag and drop handlers
   const handleDragStart = (start) => {
+    // Don't allow drag if data isn't ready
+    if (!boardData?.lists || boardLoading) {
+      return;
+    }
+
     const { draggableId, source, type } = start;
     
     if (type === 'list') {
@@ -153,6 +159,11 @@ const BoardPageNew = () => {
   const handleDragEnd = async (result) => {
     endDrag();
     
+    // Don't allow drag if data isn't ready
+    if (!boardData?.lists || boardLoading) {
+      return;
+    }
+    
     const { destination, source, type, draggableId } = result;
 
     // Check if drag was cancelled or no position change
@@ -166,28 +177,63 @@ const BoardPageNew = () => {
     try {
       if (type === 'list') {
         // Reorder lists
-        const newLists = Array.from(boardData.lists);
-        const [movedList] = newLists.splice(source.index, 1);
-        newLists.splice(destination.index, 0, movedList);
+        const listId = parseInt(draggableId);
+        const listToMove = boardData.lists.find(list => list.id === listId);
+        
+        if (!listToMove) return;
 
-        const listOrder = newLists.map((list, index) => ({
-          id: list.id,
-          position: index * 1024
-        }));
+        // Calculate new position using utility
+        const newPosition = calculateNewPosition(
+          boardData.lists,
+          destination.index
+        );
 
-        await reorderListsMutation.mutateAsync({ boardId, listOrder });
+        await reorderListsMutation.mutateAsync({ 
+          boardId, 
+          listOrder: [{ id: listId, position: newPosition }]
+        });
         
       } else if (type === 'card') {
         // Move card
         const sourceListId = source.droppableId;
         const targetListId = destination.droppableId;
+        const cardId = parseInt(draggableId);
         
+        // Find the target list to get its cards for position calculation
+        const targetList = boardData.lists.find(list => String(list.id) === targetListId);
+        const sourceList = boardData.lists.find(list => String(list.id) === sourceListId);
+        
+        if (!targetList || !sourceList) {
+          console.error('Could not find source or target list:', { sourceListId, targetListId, lists: boardData.lists });
+          return;
+        }
+        
+        const targetCards = targetList.cards || [];
+        
+        let newPosition;
+        
+        if (sourceListId === targetListId) {
+          // Same list reordering - remove the card from consideration
+          const cardToMove = targetCards.find(card => card.id === cardId);
+          newPosition = calculateNewPosition(
+            targetCards,
+            destination.index,
+            cardToMove
+          );
+        } else {
+          // Moving between lists
+          newPosition = calculateNewPosition(
+            targetCards,
+            destination.index
+          );
+        }
+
         await moveCardMutation.mutateAsync({
           boardId,
           sourceListId,
           cardId: draggableId,
           targetListId,
-          position: destination.index * 1024
+          position: newPosition
         });
       }
     } catch (error) {
@@ -318,58 +364,74 @@ const BoardPageNew = () => {
                 {...provided.droppableProps}
                 ref={provided.innerRef}
               >
-                {filteredLists.map((list, index) => (
-                  <Draggable key={String(list.id)} draggableId={String(list.id)} index={index}>
-                    {(provided, snapshot) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        {...provided.dragHandleProps}
-                        style={{
-                          ...provided.draggableProps.style,
-                          opacity: snapshot.isDragging ? 0.8 : 1
-                        }}
+                {boardData?.lists && filteredLists.length >= 0 ? (
+                  <>
+                    {filteredLists.map((list, index) => (
+                      <Draggable 
+                        key={String(list.id)} 
+                        draggableId={String(list.id)} 
+                        index={index}
+                        isDragDisabled={!boardData?.lists || boardLoading}
                       >
-                        <BoardListNew
-                          list={list}
-                          onCardClick={handleCardClick}
-                          onCardAdded={handleCardAdded}
-                          onCardUpdated={handleCardUpdated}
-                          onCardDeleted={handleCardDeleted}
-                          onListUpdated={handleListUpdated}
-                          onListDeleted={handleListDeleted}
-                          boardId={boardId}
-                          isLoading={
-                            createCardMutation.isLoading ||
-                            updateCardMutation.isLoading ||
-                            deleteCardMutation.isLoading
-                          }
-                        />
-                      </div>
-                    )}
-                  </Draggable>
-                ))}
-                {provided.placeholder}
+                        {(provided, snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            style={{
+                              ...provided.draggableProps.style,
+                              opacity: snapshot.isDragging ? 0.8 : 1
+                            }}
+                          >
+                            <BoardListNew
+                              list={list}
+                              onCardClick={handleCardClick}
+                              onCardAdded={handleCardAdded}
+                              onCardUpdated={handleCardUpdated}
+                              onCardDeleted={handleCardDeleted}
+                              onListUpdated={handleListUpdated}
+                              onListDeleted={handleListDeleted}
+                              boardId={boardId}
+                              isLoading={
+                                createCardMutation.isLoading ||
+                                updateCardMutation.isLoading ||
+                                deleteCardMutation.isLoading ||
+                                !boardData?.lists ||
+                                boardLoading
+                              }
+                            />
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
 
-                <div className="add-list-container">
-                  {showAddList ? (
-                    <AddListForm
-                      boardId={boardId}
-                      onListAdded={handleListAdded}
-                      onCancel={() => setShowAddList(false)}
-                      isLoading={createListMutation.isLoading}
-                    />
-                  ) : (
-                    <button
-                      className="add-list-btn"
-                      onClick={() => setShowAddList(true)}
-                      disabled={createListMutation.isLoading}
-                    >
-                      <FiPlus />
-                      Add another list
-                    </button>
-                  )}
-                </div>
+                    <div className="add-list-container">
+                      {showAddList ? (
+                        <AddListForm
+                          boardId={boardId}
+                          onListAdded={handleListAdded}
+                          onCancel={() => setShowAddList(false)}
+                          isLoading={createListMutation.isLoading}
+                        />
+                      ) : (
+                        <button
+                          className="add-list-btn"
+                          onClick={() => setShowAddList(true)}
+                          disabled={createListMutation.isLoading || !boardData?.lists}
+                        >
+                          <FiPlus />
+                          Add another list
+                        </button>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="board-loading">
+                    <LoadingSpinner size="medium" message="Loading lists..." />
+                    {provided.placeholder}
+                  </div>
+                )}
               </div>
             )}
           </Droppable>

@@ -26,7 +26,7 @@
   flex: 1;
   position: relative;
   min-height: 140px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--board-color, #0079bf);
   display: flex;
   align-items: flex-end;
 }
@@ -56,7 +56,8 @@
 }
 
 .board-description {
-  font-size: 14px;
+  font-size: 16px;
+  color: white;
   margin: 0;
   opacity: 0.9;
   line-height: 1.4;
@@ -238,7 +239,7 @@
 }
 
 .board-card.list-view .board-description {
-  color: #666;
+  color: white;
   font-size: 14px;
   margin: 0;
   display: -webkit-box;

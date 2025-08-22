@@ -247,15 +247,52 @@ const syncDatabase = async (force = false) => {
   } catch (error) {
     console.error('Database synchronization failed:', error);
     
-    // If alter fails on SQLite, try force sync as fallback
+    // Only use force sync as a fallback for very specific errors and when database is new/empty
     if (!force && process.env.USE_MYSQL !== 'true') {
-      console.log('Alter sync failed, attempting force sync for SQLite...');
+      const fs = require('fs');
+      const path = require('path');
+      const dbPath = path.join(__dirname, '../../database.sqlite');
+      
+      // Check if database is empty or very small (likely no important data)
+      let isEmptyDb = false;
       try {
-        await sequelize.sync({ force: true });
-        console.log('Database force sync completed successfully');
-      } catch (forceError) {
-        console.error('Force sync also failed:', forceError);
-        throw forceError;
+        if (fs.existsSync(dbPath)) {
+          const stats = fs.statSync(dbPath);
+          isEmptyDb = stats.size < 10240; // Less than 10KB
+        } else {
+          isEmptyDb = true; // No database file
+        }
+      } catch (fileError) {
+        console.error('Error checking database file:', fileError);
+      }
+      
+      // Only force sync if database appears to be empty AND it's a schema-related error
+      const isSchemaError = error.name === 'SequelizeUniqueConstraintError' || 
+                           error.name === 'SequelizeDatabaseError' ||
+                           error.message.includes('no such table') ||
+                           error.message.includes('table already exists');
+      
+      if (isEmptyDb && isSchemaError) {
+        console.log('Empty database with schema error detected, attempting force sync...');
+        try {
+          await sequelize.sync({ force: true });
+          console.log('Database force sync completed successfully');
+        } catch (forceError) {
+          console.error('Force sync also failed:', forceError);
+          throw forceError;
+        }
+      } else {
+        console.log('Database contains data or error is not schema-related, preserving data...');
+        console.log('Continuing with existing database state...');
+        
+        // Try a basic sync without alter to just connect
+        try {
+          await sequelize.sync({ alter: false });
+          console.log('Database connection established with existing schema');
+        } catch (basicSyncError) {
+          console.error('Basic sync also failed:', basicSyncError);
+          throw error; // Throw original error
+        }
       }
     } else {
       throw error;

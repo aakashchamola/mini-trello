@@ -204,7 +204,7 @@ export const useReorderLists = () => {
   
   return useMutation({
     mutationFn: async ({ boardId, listOrder }) => {
-      const response = await listAPI.reorder(boardId, { listOrder });
+      const response = await listAPI.reorder(boardId, { listPositions: listOrder });
       return response.data;
     },
     onMutate: async ({ boardId, listOrder }) => {
