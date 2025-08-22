@@ -197,34 +197,17 @@ const BoardPageNew = () => {
 
   // Event handlers
   const handleListAdded = async (listData) => {
-    try {
-      await createListMutation.mutateAsync({ 
-        boardId, 
-        listData: {
-          ...listData,
-          position: (boardData?.lists?.length || 0) * 1024
-        }
-      });
-      setShowAddList(false);
-    } catch (error) {
-      console.error('Failed to create list:', error);
-    }
+    // The list has already been created by the AddListForm React Query mutation
+    // Just handle any UI state changes
+    console.log('List added successfully:', listData);
+    setShowAddList(false);
   };
 
   const handleCardAdded = async (cardData, listId) => {
-    try {
-      const list = boardData.lists.find(l => l.id === listId);
-      await createCardMutation.mutateAsync({ 
-        boardId, 
-        listId, 
-        cardData: {
-          ...cardData,
-          position: (list?.cards?.length || 0) * 1024
-        }
-      });
-    } catch (error) {
-      console.error('Failed to create card:', error);
-    }
+    // The card has already been created by the AddCardForm React Query mutation
+    // React Query optimistic updates have already updated the cache
+    // Just handle any UI state changes
+    console.log('Card added successfully:', cardData, 'to list:', listId);
   };
 
   const handleCardClick = (card, listId) => {
@@ -249,11 +232,10 @@ const BoardPageNew = () => {
   };
 
   const handleCardDeleted = async (cardId, listId) => {
-    try {
-      await deleteCardMutation.mutateAsync({ boardId, listId, cardId });
-    } catch (error) {
-      console.error('Failed to delete card:', error);
-    }
+    // The card has already been deleted by the CardItem React Query mutation
+    // React Query optimistic updates have already updated the cache
+    // Just handle any UI state changes
+    console.log('Card deleted successfully:', cardId, 'from list:', listId);
   };
 
   const handleListUpdated = async (listId, updates) => {
@@ -265,11 +247,10 @@ const BoardPageNew = () => {
   };
 
   const handleListDeleted = async (listId) => {
-    try {
-      await deleteListMutation.mutateAsync({ boardId, listId });
-    } catch (error) {
-      console.error('Failed to delete list:', error);
-    }
+    // The list has already been deleted by the BoardList React Query mutation
+    // React Query optimistic updates have already updated the cache
+    // Just handle any UI state changes
+    console.log('List deleted successfully:', listId);
   };
 
   const handleSearch = (query) => {

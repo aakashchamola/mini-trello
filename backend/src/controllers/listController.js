@@ -29,18 +29,24 @@ const listController = {
         position = (maxPosition || -1) + 1;
       }
 
-      // Handle position conflicts by shifting existing lists
-      await List.increment('position', {
-        where: {
-          boardId,
-          position: { [Op.gte]: position }
-        }
-      });
+      // Use transaction to ensure data consistency
+      const { sequelize } = require('../config/database');
+      const list = await sequelize.transaction(async (t) => {
+        // Handle position conflicts by shifting existing lists
+        await List.increment('position', {
+          where: {
+            boardId,
+            position: { [Op.gte]: position }
+          },
+          transaction: t
+        });
 
-      const list = await List.create({
-        ...value,
-        position,
-        boardId
+        // Create the new list
+        return await List.create({
+          ...value,
+          position,
+          boardId
+        }, { transaction: t });
       });
 
       res.status(201).json({
@@ -291,15 +297,23 @@ const listController = {
         });
       }
 
-      // Shift positions of lists after this one
-      await List.decrement('position', {
-        where: {
-          boardId,
-          position: { [Op.gt]: list.position }
-        }
-      });
+      const deletedPosition = list.position;
 
-      await list.destroy();
+      // Use transaction to ensure data consistency
+      const { sequelize } = require('../config/database');
+      await sequelize.transaction(async (t) => {
+        // First delete the list (this will cascade delete all cards)
+        await list.destroy({ transaction: t });
+
+        // Then shift positions of lists that were after this one
+        await List.decrement('position', {
+          where: {
+            boardId,
+            position: { [Op.gt]: deletedPosition }
+          },
+          transaction: t
+        });
+      });
 
       res.json({
         message: 'List deleted successfully'

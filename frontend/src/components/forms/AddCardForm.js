@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FiX } from 'react-icons/fi';
-import { cardAPI } from '../../services/api';
+import { useCreateCard } from '../../hooks/useCards';
 import './AddCardForm.css';
 
 const AddCardForm = ({ listId, boardId, onCardAdded, onCancel }) => {
   const [title, setTitle] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const textareaRef = useRef(null);
+  
+  const createCardMutation = useCreateCard();
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -23,28 +24,32 @@ const AddCardForm = ({ listId, boardId, onCardAdded, onCancel }) => {
     }
 
     try {
-      setIsSubmitting(true);
       setError('');
       
-      console.log('Creating card with data:', {
+      console.log('Creating card with React Query mutation:', {
         title: title.trim(),
         description: '',
         position: 65536
       });
       
-      const response = await cardAPI.create(boardId, listId, {
-        title: title.trim(),
-        description: '',
-        position: 65536 // Default position
+      const newCard = await createCardMutation.mutateAsync({
+        boardId,
+        listId,
+        cardData: {
+          title: title.trim(),
+          description: '',
+          position: 65536
+        }
       });
       
-      console.log('Card creation response:', response);
-      
-      const newCard = response.data?.card || response.data?.data || response.data;
-      console.log('Parsed new card:', newCard);
+      console.log('Card created successfully:', newCard);
       
       if (newCard && newCard.id) {
-        onCardAdded(newCard);
+        // The React Query mutation already handles cache updates
+        // Just notify parent component if needed
+        if (onCardAdded) {
+          onCardAdded(newCard);
+        }
         setTitle('');
       } else {
         throw new Error('Invalid card data received from server');
@@ -52,8 +57,6 @@ const AddCardForm = ({ listId, boardId, onCardAdded, onCancel }) => {
     } catch (error) {
       console.error('Failed to create card:', error);
       setError(error.response?.data?.message || error.message || 'Failed to create card. Please try again.');
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -81,9 +84,9 @@ const AddCardForm = ({ listId, boardId, onCardAdded, onCancel }) => {
           <button
             type="submit"
             className="add-btn"
-            disabled={!title.trim() || isSubmitting}
+            disabled={!title.trim() || createCardMutation.isPending}
           >
-            {isSubmitting ? 'Adding...' : 'Add Card'}
+            {createCardMutation.isPending ? 'Adding...' : 'Add Card'}
           </button>
           <button
             type="button"

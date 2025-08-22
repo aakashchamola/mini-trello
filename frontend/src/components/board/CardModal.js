@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FiX, FiEdit, FiCalendar, FiUser, FiMessageCircle } from 'react-icons/fi';
 import { commentAPI, cardAPI, handleAPIError } from '../../services/api';
+import { useUpdateCard } from '../../hooks/useCards';
 import { toast } from 'react-toastify';
 import './CardModal.css';
 
@@ -25,6 +26,8 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [commentLoading, setCommentLoading] = useState(false);
+
+  const updateCardMutation = useUpdateCard();
 
   const fetchComments = async () => {
     try {
@@ -79,20 +82,14 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
       console.log('Updating card with data:', updateData);
       console.log('Current card being updated:', card);
       
-      // Use API directly instead of context to ensure it works
-      const response = await cardAPI.update(boardId, listId, card.id, updateData);
-      console.log('Card update response:', response);
-      
-      // Extract the updated card data from the response
-      let updatedCardData;
-      if (response.data?.card) {
-        updatedCardData = response.data.card;
-      } else if (response.data?.data) {
-        updatedCardData = response.data.data;
-      } else {
-        // Fallback: merge the update data with existing card
-        updatedCardData = { ...card, ...updateData };
-      }
+      // Use React Query mutation
+      const updatedCardData = await updateCardMutation.mutateAsync({
+        boardId,
+        listId,
+        cardId: card.id,
+        cardData: updateData
+      });
+      console.log('Card update response:', updatedCardData);
       
       // Update the internal card state to ensure subsequent updates work
       const newCardData = { 
@@ -106,7 +103,6 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
       console.log('Setting new card data:', newCardData);
       setCard(newCardData);
       
-      toast.success('Card updated successfully');
       setIsEditing(false);
       
       // The form state will be automatically updated by the useEffect
@@ -118,7 +114,7 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
       }
     } catch (error) {
       console.error('Error updating card:', error);
-      toast.error(error.response?.data?.message || 'Failed to update card');
+      // Error is already handled by the hook with toast
     } finally {
       setLoading(false);
     }

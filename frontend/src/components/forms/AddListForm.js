@@ -1,30 +1,36 @@
 import React, { useState } from 'react';
 import { FiX } from 'react-icons/fi';
-import { listAPI } from '../../services/api';
+import { useCreateList } from '../../hooks/useLists';
 import './AddListForm.css';
 
 const AddListForm = ({ boardId, onListAdded, onCancel }) => {
   const [title, setTitle] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const createListMutation = useCreateList();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!title.trim()) return;
 
     try {
-      setIsSubmitting(true);
-      const response = await listAPI.create(boardId, {
-        title: title.trim()
+      const newList = await createListMutation.mutateAsync({
+        boardId,
+        listData: {
+          title: title.trim()
+        }
       });
       
-      const newList = response.data?.list || response.data?.data || response.data;
-      onListAdded(newList);
+      console.log('List created successfully:', newList);
+      
+      // The React Query mutation already handles cache updates
+      // Just notify parent component if needed
+      if (onListAdded) {
+        onListAdded(newList);
+      }
       setTitle('');
     } catch (error) {
       console.error('Failed to create list:', error);
       alert('Failed to create list. Please try again.');
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -51,9 +57,9 @@ const AddListForm = ({ boardId, onListAdded, onCancel }) => {
           <button
             type="submit"
             className="add-btn"
-            disabled={!title.trim() || isSubmitting}
+            disabled={!title.trim() || createListMutation.isPending}
           >
-            {isSubmitting ? 'Adding...' : 'Add List'}
+            {createListMutation.isPending ? 'Adding...' : 'Add List'}
           </button>
           <button
             type="button"

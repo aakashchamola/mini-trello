@@ -85,13 +85,13 @@ const Sidebar = () => {
             <span>Dashboard</span>
           </Link>
 
-          <Link
+          {/* <Link
             to="/my-tasks"
             className={`nav-item ${isActive("/my-tasks") ? "active" : ""}`}
           >
             <FiClock />
             <span>My Tasks</span>
-          </Link>
+          </Link> */}
         </div>
 
         {/* Starred Boards */}
@@ -126,7 +126,7 @@ const Sidebar = () => {
                         backgroundColor: board.background_color || "#0079bf",
                       }}
                     />
-                    <span className="board-title">{board.title}</span>
+                    <span className="board-title-side">{board.title}</span>
                   </Link>
                 ))}
               </div>
@@ -160,9 +160,9 @@ const Sidebar = () => {
                 boards.slice(0, 10).map((board) => (
                   <Link
                     key={board.id}
-                    to={`/board/${board.id}`}
+                    to={`/boards/${board.id}`}
                     className={`nav-item board-item ${
-                      isActive(`/board/${board.id}`) ? "active" : ""
+                      isActive(`/boards/${board.id}`) ? "active" : ""
                     }`}
                   >
                     <div
@@ -171,7 +171,7 @@ const Sidebar = () => {
                         backgroundColor: board.background_color || "#0079bf",
                       }}
                     />
-                    <span className="board-title">{board.title}</span>
+                    <span className="board-title-side">{board.title}</span>
                   </Link>
                 ))
               ) : (

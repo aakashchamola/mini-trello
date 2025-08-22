@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { FiClock, FiMessageCircle, FiPaperclip, FiUser, FiMoreHorizontal, FiEdit2, FiTrash2 } from 'react-icons/fi';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { cardAPI } from '../../services/api';
+import { useDeleteCard } from '../../hooks/useCards';
 import './CardItem.css';
 
 dayjs.extend(relativeTime);
 
 const CardItem = ({ card, onClick, onUpdated, onDeleted, boardId, listId }) => {
   const [showCardMenu, setShowCardMenu] = useState(false);
+  const deleteCardMutation = useDeleteCard();
 
   const handleMenuClick = (e) => {
     e.stopPropagation();
@@ -30,13 +31,13 @@ const CardItem = ({ card, onClick, onUpdated, onDeleted, boardId, listId }) => {
     }
 
     try {
-      await cardAPI.delete(boardId, listId, card.id);
+      await deleteCardMutation.mutateAsync({ boardId, listId, cardId: card.id });
       if (onDeleted) {
         onDeleted(card.id);
       }
     } catch (error) {
       console.error('Failed to delete card:', error);
-      alert('Failed to delete card. Please try again.');
+      // Error is already handled by the hook with toast
     }
   };
   const formatDueDate = (date) => {

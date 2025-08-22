@@ -46,19 +46,25 @@ const cardController = {
         position = (maxPosition || -1) + 1;
       }
 
-      // Handle position conflicts by shifting existing cards
-      await Card.increment('position', {
-        where: {
-          listId,
-          position: { [Op.gte]: position }
-        }
-      });
+      // Use transaction to ensure data consistency
+      const { sequelize } = require('../config/database');
+      const card = await sequelize.transaction(async (t) => {
+        // Handle position conflicts by shifting existing cards
+        await Card.increment('position', {
+          where: {
+            listId,
+            position: { [Op.gte]: position }
+          },
+          transaction: t
+        });
 
-      const card = await Card.create({
-        ...value,
-        position,
-        listId,
-        createdBy: req.user.id
+        // Create the new card
+        return await Card.create({
+          ...value,
+          position,
+          listId,
+          createdBy: req.user.id
+        }, { transaction: t });
       });
 
       res.status(201).json({

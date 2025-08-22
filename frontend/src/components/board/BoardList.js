@@ -4,6 +4,7 @@ import { FiPlus, FiMoreHorizontal, FiEdit2, FiTrash2, FiCheck, FiX } from 'react
 import CardItem from './CardItem';
 import AddCardForm from '../forms/AddCardForm';
 import { listAPI } from '../../services/api';
+import { useDeleteList, useUpdateList } from '../../hooks/useLists';
 import './BoardList.css';
 
 const BoardList = ({ 
@@ -21,6 +22,9 @@ const BoardList = ({
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitle, setEditTitle] = useState(list.title);
   const [isUpdating, setIsUpdating] = useState(false);
+
+  const deleteListMutation = useDeleteList();
+  const updateListMutation = useUpdateList();
 
   const handleCardAdded = (newCard) => {
     console.log('BoardList: handleCardAdded called with:', newCard, 'for list:', list.id);
@@ -54,11 +58,12 @@ const BoardList = ({
 
     try {
       setIsUpdating(true);
-      const response = await listAPI.update(boardId, list.id, {
-        title: editTitle.trim()
+      const updatedList = await updateListMutation.mutateAsync({
+        boardId,
+        listId: list.id,
+        listData: { title: editTitle.trim() }
       });
       
-      const updatedList = response.data?.list || response.data?.data || response.data;
       if (onListUpdated) {
         onListUpdated(updatedList);
       }
@@ -78,13 +83,13 @@ const BoardList = ({
     }
 
     try {
-      await listAPI.delete(boardId, list.id);
+      await deleteListMutation.mutateAsync({ boardId, listId: list.id });
       if (onListDeleted) {
         onListDeleted(list.id);
       }
     } catch (error) {
       console.error('Failed to delete list:', error);
-      alert('Failed to delete list. Please try again.');
+      // Error is already handled by the hook with toast
     }
   };
 
