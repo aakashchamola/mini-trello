@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
-import { FiX, FiLock, FiUsers, FiGlobe } from 'react-icons/fi';
+import { FiX } from 'react-icons/fi';
 import { boardAPI } from '../../services/api';
-import { BOARD_VISIBILITY, LABEL_COLORS } from '../../config/constants';
 import LoadingSpinner from '../common/LoadingSpinner';
 import './CreateBoardModal.css';
 
@@ -14,9 +13,6 @@ const CreateBoardSchema = Yup.object().shape({
     .required('Title is required'),
   description: Yup.string()
     .max(500, 'Description must be less than 500 characters'),
-  visibility: Yup.string()
-    .oneOf(Object.values(BOARD_VISIBILITY), 'Invalid visibility')
-    .required('Visibility is required'),
   workspaceId: Yup.string()
     .nullable(),
   background_color: Yup.string()
@@ -40,14 +36,20 @@ const CreateBoardModal = ({ onClose, onBoardCreated, workspaces = [] }) => {
       const boardData = {
         title: values.title.trim(),
         description: values.description?.trim() || '',
-        visibility: values.visibility,
-        background_color: values.background_color,
-        workspaceId: values.workspaceId || null
+        color: values.background_color,
+        workspaceId: values.workspaceId ? parseInt(values.workspaceId) : undefined
       };
 
+      console.log('Creating board with data:', boardData);
+      
       const response = await boardAPI.createBoard(boardData);
-      onBoardCreated(response.data.board);
+      console.log('Board creation response:', response);
+      
+      // Handle different response structures
+      const newBoard = response.data?.board || response.data?.data || response.data;
+      onBoardCreated(newBoard);
     } catch (error) {
+      console.error('Board creation error:', error);
       const errorMessage = error.response?.data?.message || 'Failed to create board';
       
       if (error.response?.data?.errors) {
@@ -84,7 +86,6 @@ const CreateBoardModal = ({ onClose, onBoardCreated, workspaces = [] }) => {
           initialValues={{
             title: '',
             description: '',
-            visibility: BOARD_VISIBILITY.PRIVATE,
             workspaceId: '',
             background_color: backgroundColors[0]
           }}
@@ -135,53 +136,6 @@ const CreateBoardModal = ({ onClose, onBoardCreated, workspaces = [] }) => {
                       />
                     ))}
                   </div>
-                </div>
-              </div>
-
-              <div className="form-section">
-                <div className="form-group">
-                  <label>Visibility</label>
-                  <div className="visibility-options">
-                    <div
-                      className={`visibility-option ${values.visibility === BOARD_VISIBILITY.PRIVATE ? 'selected' : ''}`}
-                      onClick={() => setFieldValue('visibility', BOARD_VISIBILITY.PRIVATE)}
-                    >
-                      <div className="visibility-icon">
-                        <FiLock />
-                      </div>
-                      <div className="visibility-content">
-                        <h4>Private</h4>
-                        <p>Only you and invited members can see this board</p>
-                      </div>
-                    </div>
-
-                    <div
-                      className={`visibility-option ${values.visibility === BOARD_VISIBILITY.WORKSPACE ? 'selected' : ''}`}
-                      onClick={() => setFieldValue('visibility', BOARD_VISIBILITY.WORKSPACE)}
-                    >
-                      <div className="visibility-icon">
-                        <FiUsers />
-                      </div>
-                      <div className="visibility-content">
-                        <h4>Workspace</h4>
-                        <p>All workspace members can see and edit this board</p>
-                      </div>
-                    </div>
-
-                    <div
-                      className={`visibility-option ${values.visibility === BOARD_VISIBILITY.PUBLIC ? 'selected' : ''}`}
-                      onClick={() => setFieldValue('visibility', BOARD_VISIBILITY.PUBLIC)}
-                    >
-                      <div className="visibility-icon">
-                        <FiGlobe />
-                      </div>
-                      <div className="visibility-content">
-                        <h4>Public</h4>
-                        <p>Anyone on the internet can see this board</p>
-                      </div>
-                    </div>
-                  </div>
-                  <ErrorMessage name="visibility" component="div" className="field-error" />
                 </div>
               </div>
 

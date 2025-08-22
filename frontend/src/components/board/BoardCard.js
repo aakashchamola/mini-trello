@@ -9,7 +9,7 @@ const BoardCard = ({ board, onStarToggle, viewMode = 'grid' }) => {
   const handleStarClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    onStarToggle(board.id, board.isStarred);
+    onStarToggle(board.id, board.isStarred || board.is_starred);
   };
 
   const formatLastActivity = (date) => {
@@ -19,11 +19,11 @@ const BoardCard = ({ board, onStarToggle, viewMode = 'grid' }) => {
 
   if (viewMode === 'list') {
     return (
-      <Link to={`/board/${board.id}`} className="board-card list-view">
+      <Link to={`/boards/${board.id}`} className="board-card list-view">
         <div className="board-header">
           <div 
             className="board-color-indicator"
-            style={{ backgroundColor: board.background_color || '#0079bf' }}
+            style={{ backgroundColor: board.background_color || board.color || '#0079bf' }}
           />
           <div className="board-info">
             <h3 className="board-title">{board.title}</h3>
@@ -35,20 +35,20 @@ const BoardCard = ({ board, onStarToggle, viewMode = 'grid' }) => {
         
         <div className="board-meta">
           <div className="board-stats">
-            {board.memberCount > 0 && (
+            {(board.memberCount || 0) > 0 && (
               <span className="stat">
                 <FiUsers />
                 {board.memberCount}
               </span>
             )}
             
-            {board.listCount > 0 && (
+            {(board.listCount || 0) > 0 && (
               <span className="stat">
                 {board.listCount} lists
               </span>
             )}
             
-            {board.cardCount > 0 && (
+            {(board.cardCount || 0) > 0 && (
               <span className="stat">
                 {board.cardCount} cards
               </span>
@@ -58,13 +58,13 @@ const BoardCard = ({ board, onStarToggle, viewMode = 'grid' }) => {
           <div className="board-actions">
             <span className="last-activity">
               <FiClock />
-              {formatLastActivity(board.lastActivity)}
+              {formatLastActivity(board.lastActivity || board.updated_at)}
             </span>
             
             <button
-              className={`star-btn ${board.isStarred ? 'starred' : ''}`}
+              className={`star-btn ${(board.isStarred || board.is_starred) ? 'starred' : ''}`}
               onClick={handleStarClick}
-              title={board.isStarred ? 'Remove from starred' : 'Add to starred'}
+              title={(board.isStarred || board.is_starred) ? 'Remove from starred' : 'Add to starred'}
             >
               <FiStar />
             </button>
@@ -75,18 +75,18 @@ const BoardCard = ({ board, onStarToggle, viewMode = 'grid' }) => {
   }
 
   return (
-    <Link to={`/board/${board.id}`} className="board-card grid-view">
+    <Link to={`/boards/${board.id}`} className="board-card grid-view">
       <div 
         className="board-background"
-        style={{ backgroundColor: board.background_color || '#0079bf' }}
+        style={{ backgroundColor: board.background_color || board.color || '#0079bf' }}
       >
         <div className="board-overlay">
           <div className="board-header">
             <h3 className="board-title">{board.title}</h3>
             <button
-              className={`star-btn ${board.isStarred ? 'starred' : ''}`}
+              className={`star-btn ${(board.isStarred || board.is_starred) ? 'starred' : ''}`}
               onClick={handleStarClick}
-              title={board.isStarred ? 'Remove from starred' : 'Add to starred'}
+              title={(board.isStarred || board.is_starred) ? 'Remove from starred' : 'Add to starred'}
             >
               <FiStar />
             </button>
@@ -101,10 +101,10 @@ const BoardCard = ({ board, onStarToggle, viewMode = 'grid' }) => {
       <div className="board-footer">
         <div className="board-meta">
           <div className="board-stats">
-            {board.listCount > 0 && (
+            {(board.listCount || 0) > 0 && (
               <span className="stat">{board.listCount} lists</span>
             )}
-            {board.cardCount > 0 && (
+            {(board.cardCount || 0) > 0 && (
               <span className="stat">{board.cardCount} cards</span>
             )}
           </div>
@@ -133,7 +133,7 @@ const BoardCard = ({ board, onStarToggle, viewMode = 'grid' }) => {
         <div className="board-footer-info">
           <span className="last-activity">
             <FiClock />
-            {formatLastActivity(board.lastActivity)}
+            {formatLastActivity(board.lastActivity || board.updated_at)}
           </span>
           
           {board.visibility && (

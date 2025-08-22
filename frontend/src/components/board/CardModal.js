@@ -1,16 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { FiX, FiEdit, FiCalendar, FiUser, FiMessageCircle } from 'react-icons/fi';
-import { useApp } from '../../contexts/AppContext';
-import { commentAPI, handleAPIError } from '../../services/api';
+import { commentAPI, cardAPI, handleAPIError } from '../../services/api';
 import { toast } from 'react-toastify';
 import './CardModal.css';
 
-const CardModal = ({ card, boardId, listId, onClose, members = [] }) => {
-  const { updateCard } = useApp();
+// Helper function to safely format dates
+const formatDate = (dateString) => {
+  if (!dateString) return 'Invalid Date';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Invalid Date';
+    return date.toLocaleDateString();
+  } catch (error) {
+    return 'Invalid Date';
+  }
+};
+
+const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated, members = [] }) => {
+  const [card, setCard] = useState(initialCard); // Keep updated card state
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [title, setTitle] = useState(card.title);
-  const [description, setDescription] = useState(card.description || '');
+  const [title, setTitle] = useState(initialCard.title);
+  const [description, setDescription] = useState(initialCard.description || '');
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [commentLoading, setCommentLoading] = useState(false);
@@ -18,9 +29,14 @@ const CardModal = ({ card, boardId, listId, onClose, members = [] }) => {
   const fetchComments = async () => {
     try {
       const response = await commentAPI.getByCard(boardId, listId, card.id);
-      setComments(response.data.data || []);
+      const commentsData = response.data.data || response.data || [];
+      // Ensure we have an array and filter out invalid entries
+      const validComments = Array.isArray(commentsData) ? commentsData.filter(c => c && c.id) : [];
+      setComments(validComments);
     } catch (error) {
       console.error('Error fetching comments:', error);
+      // Set empty array on error to prevent crashes
+      setComments([]);
     }
   };
 
@@ -28,6 +44,12 @@ const CardModal = ({ card, boardId, listId, onClose, members = [] }) => {
     fetchComments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardId, listId, card.id]);
+
+  // Sync form state with card state whenever card changes
+  useEffect(() => {
+    setTitle(card.title);
+    setDescription(card.description || '');
+  }, [card]);
 
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) {
@@ -54,17 +76,49 @@ const CardModal = ({ card, boardId, listId, onClose, members = [] }) => {
         description: description.trim()
       };
 
-      const result = await updateCard(boardId, listId, card.id, updateData);
+      console.log('Updating card with data:', updateData);
+      console.log('Current card being updated:', card);
       
-      if (result.success) {
-        toast.success('Card updated successfully');
-        setIsEditing(false);
+      // Use API directly instead of context to ensure it works
+      const response = await cardAPI.update(boardId, listId, card.id, updateData);
+      console.log('Card update response:', response);
+      
+      // Extract the updated card data from the response
+      let updatedCardData;
+      if (response.data?.card) {
+        updatedCardData = response.data.card;
+      } else if (response.data?.data) {
+        updatedCardData = response.data.data;
       } else {
-        toast.error(result.error);
+        // Fallback: merge the update data with existing card
+        updatedCardData = { ...card, ...updateData };
+      }
+      
+      // Update the internal card state to ensure subsequent updates work
+      const newCardData = { 
+        ...card, 
+        ...updatedCardData,
+        // Ensure we have the updated values
+        title: updateData.title,
+        description: updateData.description
+      };
+      
+      console.log('Setting new card data:', newCardData);
+      setCard(newCardData);
+      
+      toast.success('Card updated successfully');
+      setIsEditing(false);
+      
+      // The form state will be automatically updated by the useEffect
+      
+      // Update the card in the parent component's state
+      if (onCardUpdated) {
+        console.log('Calling onCardUpdated with:', newCardData);
+        onCardUpdated(newCardData, listId);
       }
     } catch (error) {
       console.error('Error updating card:', error);
-      toast.error(handleAPIError(error));
+      toast.error(error.response?.data?.message || 'Failed to update card');
     } finally {
       setLoading(false);
     }
@@ -75,13 +129,21 @@ const CardModal = ({ card, boardId, listId, onClose, members = [] }) => {
 
     setCommentLoading(true);
     try {
+      console.log('Adding comment to card:', card.id);
       const response = await commentAPI.create(boardId, listId, card.id, {
         content: newComment.trim()
       });
 
-      setComments(prev => [...prev, response.data.data]);
-      setNewComment('');
-      toast.success('Comment added');
+      const newCommentData = response.data.data || response.data;
+      // Ensure the new comment has valid structure
+      if (newCommentData && newCommentData.id) {
+        setComments(prev => [...prev, newCommentData]);
+        setNewComment('');
+        toast.success('Comment added');
+      } else {
+        console.error('Invalid comment data received:', newCommentData);
+        toast.error('Comment added but may not display correctly');
+      }
     } catch (error) {
       console.error('Error adding comment:', error);
       toast.error(handleAPIError(error));
@@ -96,33 +158,58 @@ const CardModal = ({ card, boardId, listId, onClose, members = [] }) => {
         <div className="modal-header">
           <div className="card-title-section">
             {isEditing ? (
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="title-input"
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleSave();
-                  } else if (e.key === 'Escape') {
-                    setTitle(card.title);
-                    setIsEditing(false);
-                  }
-                }}
-              />
+              <div className="edit-mode">
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="title-input"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSave();
+                    } else if (e.key === 'Escape') {
+                      setTitle(card.title);
+                      setDescription(card.description || '');
+                      setIsEditing(false);
+                    }
+                  }}
+                />
+                <div className="edit-actions">
+                  <button 
+                    className="save-btn" 
+                    onClick={handleSave}
+                    disabled={loading}
+                  >
+                    {loading ? 'Saving...' : 'Save'}
+                  </button>
+                  <button 
+                    className="cancel-btn" 
+                    onClick={() => {
+                      setTitle(card.title);
+                      setDescription(card.description || '');
+                      setIsEditing(false);
+                    }}
+                    disabled={loading}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
             ) : (
               <h2 className="card-title" onClick={() => setIsEditing(true)}>
-                {card.title}
+                {title}
               </h2>
             )}
-            <button
-              className="edit-title-btn"
-              onClick={() => setIsEditing(!isEditing)}
-              disabled={loading}
-            >
-              <FiEdit />
-            </button>
+            {!isEditing && (
+              <button
+                className="edit-title-btn"
+                onClick={() => setIsEditing(true)}
+                disabled={loading}
+              >
+                <FiEdit />
+              </button>
+            )}
           </div>
           <button className="close-btn" onClick={onClose}>
             <FiX />
@@ -169,17 +256,21 @@ const CardModal = ({ card, boardId, listId, onClose, members = [] }) => {
                 {comments.length === 0 ? (
                   <p className="no-comments">No comments yet</p>
                 ) : (
-                  comments.map(comment => (
-                    <div key={comment.id} className="comment-item">
-                      <div className="comment-header">
-                        <span className="comment-author">{comment.author?.name || 'Unknown User'}</span>
-                        <span className="comment-date">
-                          {new Date(comment.createdAt).toLocaleDateString()}
-                        </span>
+                  comments
+                    .filter(comment => comment && comment.id) // Filter out invalid comments
+                    .map(comment => (
+                      <div key={comment.id} className="comment-item">
+                        <div className="comment-header">
+                          <span className="comment-author">
+                            {comment.author?.name || comment.authorName || 'Unknown User'}
+                          </span>
+                          <span className="comment-date">
+                            {formatDate(comment.createdAt)}
+                          </span>
+                        </div>
+                        <div className="comment-content">{comment.content || ''}</div>
                       </div>
-                      <div className="comment-content">{comment.content}</div>
-                    </div>
-                  ))
+                    ))
                 )}
               </div>
             </div>
@@ -202,13 +293,13 @@ const CardModal = ({ card, boardId, listId, onClose, members = [] }) => {
               <h4>Card Info</h4>
               <div className="info-item">
                 <span>Created:</span>
-                <span>{new Date(card.createdAt).toLocaleDateString()}</span>
+                <span>{formatDate(card.createdAt)}</span>
               </div>
               {card.due_date && (
                 <div className="info-item">
                   <span>Due Date:</span>
                   <span className={`due-date ${new Date(card.due_date) < new Date() ? 'overdue' : ''}`}>
-                    {new Date(card.due_date).toLocaleDateString()}
+                    {formatDate(card.due_date)}
                   </span>
                 </div>
               )}

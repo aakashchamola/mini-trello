@@ -9,6 +9,7 @@ const initialState = {
   workspaces: [],
   boards: [],
   currentBoard: null,
+  selectedCard: null,
   lists: [],
   cards: [],
   comments: {},
@@ -17,6 +18,13 @@ const initialState = {
   connectedUsers: [],
   isLoading: false,
   error: null,
+  searchQuery: '',
+  activeFilters: {
+    labels: [],
+    assignees: [],
+    dueDateFrom: null,
+    dueDateTo: null
+  },
   filters: {
     search: '',
     labels: [],
@@ -62,6 +70,7 @@ const ACTION_TYPES = {
   UPDATE_CARD: 'UPDATE_CARD',
   REMOVE_CARD: 'REMOVE_CARD',
   MOVE_CARD: 'MOVE_CARD',
+  SET_SELECTED_CARD: 'SET_SELECTED_CARD',
   
   // Comments
   SET_COMMENTS: 'SET_COMMENTS',
@@ -79,6 +88,8 @@ const ACTION_TYPES = {
   
   // UI State
   SET_FILTERS: 'SET_FILTERS',
+  SET_SEARCH_QUERY: 'SET_SEARCH_QUERY',
+  SET_ACTIVE_FILTERS: 'SET_ACTIVE_FILTERS',
   TOGGLE_SIDEBAR: 'TOGGLE_SIDEBAR',
   SET_SIDEBAR_TAB: 'SET_SIDEBAR_TAB'
 };
@@ -196,6 +207,9 @@ const appReducer = (state, action) => {
         )
       };
 
+    case ACTION_TYPES.SET_SELECTED_CARD:
+      return { ...state, selectedCard: action.payload };
+
     // Comments
     case ACTION_TYPES.SET_COMMENTS:
       return {
@@ -260,6 +274,12 @@ const appReducer = (state, action) => {
     // UI State
     case ACTION_TYPES.SET_FILTERS:
       return { ...state, filters: { ...state.filters, ...action.payload } };
+    
+    case ACTION_TYPES.SET_SEARCH_QUERY:
+      return { ...state, searchQuery: action.payload };
+    
+    case ACTION_TYPES.SET_ACTIVE_FILTERS:
+      return { ...state, activeFilters: { ...state.activeFilters, ...action.payload } };
     
     case ACTION_TYPES.TOGGLE_SIDEBAR:
       return { 
@@ -430,6 +450,10 @@ export const AppProvider = ({ children }) => {
     }
   }, []);
 
+  const setCurrentBoard = useCallback((board) => {
+    dispatch({ type: ACTION_TYPES.SET_CURRENT_BOARD, payload: board });
+  }, []);
+
   // List functions
   const createList = useCallback(async (boardId, listData) => {
     try {
@@ -573,6 +597,20 @@ export const AppProvider = ({ children }) => {
     dispatch({ type: ACTION_TYPES.SET_SIDEBAR_TAB, payload: tab });
   }, []);
 
+  // Card state functions
+  const setSelectedCard = useCallback((card) => {
+    dispatch({ type: ACTION_TYPES.SET_SELECTED_CARD, payload: card });
+  }, []);
+
+  // Search and filter functions
+  const setSearchQuery = useCallback((query) => {
+    dispatch({ type: ACTION_TYPES.SET_SEARCH_QUERY, payload: query });
+  }, []);
+
+  const setActiveFilters = useCallback((filters) => {
+    dispatch({ type: ACTION_TYPES.SET_ACTIVE_FILTERS, payload: filters });
+  }, []);
+
   // Context value
   const value = {
     ...state,
@@ -592,6 +630,7 @@ export const AppProvider = ({ children }) => {
     createBoard,
     updateBoard,
     deleteBoard,
+    setCurrentBoard,
     
     // List functions
     createList,
@@ -604,6 +643,7 @@ export const AppProvider = ({ children }) => {
     updateCard,
     moveCard,
     deleteCard,
+    setSelectedCard,
     
     // Comment functions
     fetchComments,
@@ -611,6 +651,8 @@ export const AppProvider = ({ children }) => {
     
     // Filter functions
     setFilters,
+    setSearchQuery,
+    setActiveFilters,
     
     // UI functions
     toggleSidebar,

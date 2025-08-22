@@ -79,7 +79,7 @@ export const authAPI = {
 // Workspace API methods
 export const workspaceAPI = {
   getAll: (params = {}) => api.get('/workspaces', { params }),
-  getUserWorkspaces: (params = {}) => api.get('/workspaces/user', { params }),
+  getUserWorkspaces: (params = {}) => api.get('/workspaces', { params }), // Backend endpoint gets user's workspaces by default
   getById: (id, params = {}) => api.get(`/workspaces/${id}`, { params }),
   create: (data) => api.post('/workspaces', data),
   update: (id, data) => api.put(`/workspaces/${id}`, data),
@@ -92,8 +92,9 @@ export const workspaceAPI = {
 export const boardAPI = {
   getAll: (params = {}) => api.get('/boards', { params }),
   getById: (id, params = {}) => api.get(`/boards/${id}`, { params }),
-  getUserBoards: (params = {}) => api.get('/boards/user', { params }),
+  getUserBoards: (params = {}) => api.get('/boards', { params }),
   create: (data) => api.post('/boards', data),
+  createBoard: (data) => api.post('/boards', data), // Alias for create
   update: (id, data) => api.put(`/boards/${id}`, data),
   delete: (id) => api.delete(`/boards/${id}`),
   toggleStar: (id) => api.put(`/boards/${id}/star`),

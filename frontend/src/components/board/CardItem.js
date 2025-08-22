@@ -1,12 +1,44 @@
-import React from 'react';
-import { FiClock, FiMessageCircle, FiPaperclip, FiUser } from 'react-icons/fi';
+import React, { useState } from 'react';
+import { FiClock, FiMessageCircle, FiPaperclip, FiUser, FiMoreHorizontal, FiEdit2, FiTrash2 } from 'react-icons/fi';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import { cardAPI } from '../../services/api';
 import './CardItem.css';
 
 dayjs.extend(relativeTime);
 
-const CardItem = ({ card, onClick }) => {
+const CardItem = ({ card, onClick, onUpdated, onDeleted, boardId, listId }) => {
+  const [showCardMenu, setShowCardMenu] = useState(false);
+
+  const handleMenuClick = (e) => {
+    e.stopPropagation();
+    setShowCardMenu(!showCardMenu);
+  };
+
+  const handleEdit = (e) => {
+    e.stopPropagation();
+    setShowCardMenu(false);
+    onClick(); // This will open the card modal
+  };
+
+  const handleDelete = async (e) => {
+    e.stopPropagation();
+    setShowCardMenu(false);
+    
+    if (!window.confirm('Are you sure you want to delete this card?')) {
+      return;
+    }
+
+    try {
+      await cardAPI.delete(boardId, listId, card.id);
+      if (onDeleted) {
+        onDeleted(card.id);
+      }
+    } catch (error) {
+      console.error('Failed to delete card:', error);
+      alert('Failed to delete card. Please try again.');
+    }
+  };
   const formatDueDate = (date) => {
     if (!date) return null;
     const dueDate = dayjs(date);
@@ -24,6 +56,28 @@ const CardItem = ({ card, onClick }) => {
 
   return (
     <div className="card-item" onClick={onClick}>
+      {/* Card Menu */}
+      <div className="card-menu-container">
+        <button 
+          className="card-menu-btn"
+          onClick={handleMenuClick}
+        >
+          <FiMoreHorizontal />
+        </button>
+        {showCardMenu && (
+          <div className="card-menu">
+            <button onClick={handleEdit} className="menu-item">
+              <FiEdit2 />
+              Edit
+            </button>
+            <button onClick={handleDelete} className="menu-item delete">
+              <FiTrash2 />
+              Delete
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Card Labels */}
       {card.labels && card.labels.length > 0 && (
         <div className="card-labels">

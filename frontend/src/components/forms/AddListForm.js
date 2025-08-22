@@ -13,13 +13,16 @@ const AddListForm = ({ boardId, onListAdded, onCancel }) => {
 
     try {
       setIsSubmitting(true);
-      const response = await listAPI.createList(boardId, {
+      const response = await listAPI.create(boardId, {
         title: title.trim()
       });
-      onListAdded(response.data.list);
+      
+      const newList = response.data?.list || response.data?.data || response.data;
+      onListAdded(newList);
       setTitle('');
     } catch (error) {
       console.error('Failed to create list:', error);
+      alert('Failed to create list. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

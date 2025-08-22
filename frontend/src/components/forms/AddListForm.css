@@ -5,12 +5,14 @@
   padding: 8px;
   width: 280px;
   flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .add-card-form {
   width: 100%;
   background: white;
   margin-top: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
 .list-title-input,
@@ -25,17 +27,30 @@
   outline: none;
   background: white;
   margin-bottom: 8px;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .list-title-input:focus,
 .card-title-input:focus {
   border-color: #026aa7;
-  box-shadow: 0 0 0 2px rgba(0, 121, 191, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 121, 191, 0.1);
 }
 
 .card-title-input {
   min-height: 60px;
   line-height: 1.4;
+  overflow: hidden;
+}
+
+.card-title-input::placeholder {
+  color: #8c8c8c;
+}
+
+.error-message {
+  color: #d32f2f;
+  font-size: 12px;
+  margin-bottom: 8px;
+  padding: 4px 0;
 }
 
 .form-actions {
@@ -53,16 +68,25 @@
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
+  min-width: 80px;
 }
 
 .add-btn:hover:not(:disabled) {
   background: #026aa7;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.add-btn:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .add-btn:disabled {
   background: #ccc;
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .cancel-btn {
@@ -72,15 +96,18 @@
   cursor: pointer;
   padding: 8px;
   border-radius: 4px;
-  transition: background-color 0.2s, color 0.2s;
+  transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 32px;
+  height: 32px;
 }
 
 .cancel-btn:hover {
   background: #f0f0f0;
   color: #333;
+  transform: scale(1.1);
 }
 
 .cancel-btn svg {

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Google OAuth Test</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+    <h2>Direct Google OAuth Test</h2>
+    <div id="buttonDiv"></div>
+    
+    <script>
+        window.onload = function () {
+            google.accounts.id.initialize({
+                client_id: "647172303794-lv8m47q1kbffqa3mhj2s99p9utfdc4jg.apps.googleusercontent.com",
+                callback: handleCredentialResponse
+            });
+            
+            google.accounts.id.renderButton(
+                document.getElementById("buttonDiv"),
+                { theme: "outline", size: "large" }
+            );
+        }
+
+        function handleCredentialResponse(response) {
+            console.log("Encoded JWT ID token: " + response.credential);
+            alert("Success! JWT: " + response.credential.substring(0, 50) + "...");
+        }
+    </script>
+</body>
+</html>
