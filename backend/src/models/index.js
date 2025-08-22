@@ -211,8 +211,12 @@ const models = {
 // Sync database tables
 const syncDatabase = async (force = false) => {
   try {
-    // Force recreation for clean database
-    await sequelize.sync({ force: true });
+    // Only force recreation if explicitly requested via parameter
+    // In development, preserve data by default
+    await sequelize.sync({ 
+      force: force, 
+      alter: !force // Use alter mode when not forcing to preserve data
+    });
     console.log('Database synchronized successfully');
   } catch (error) {
     console.error('Database synchronization failed:', error);
