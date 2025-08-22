@@ -1,44 +1,122 @@
 import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
+// Context Providers
+import { AuthProvider } from './contexts/AuthContext';
+import { AppProvider } from './contexts/AppContext';
+
+// Components
+import ProtectedRoute from './components/common/ProtectedRoute';
+import Navbar from './components/layout/Navbar';
+import Sidebar from './components/layout/Sidebar';
+import LoadingSpinner from './components/common/LoadingSpinner';
+
+// Pages
+import LoginPage from './pages/auth/LoginPage';
+import RegisterPage from './pages/auth/RegisterPage';
+import DashboardPage from './pages/DashboardPage';
+import BoardPage from './pages/BoardPage';
+import WorkspacePage from './pages/WorkspacePage';
+import ProfilePage from './pages/ProfilePage';
+import NotFoundPage from './pages/NotFoundPage';
+
+// Styles
 import './App.css';
 
 function App() {
   return (
     <div className="App">
-      <header className="App-header">
-        <h1>Mini Trello</h1>
-        <p>Welcome to your task management application!</p>
-      </header>
-      <main className="App-main">
-        <div className="board">
-          <div className="column">
-            <h2>To Do</h2>
-            <div className="card">
-              <h3>Sample Task 1</h3>
-              <p>This is a sample task in the To Do column.</p>
+      <AuthProvider>
+        <AppProvider>
+          <Router>
+            <div className="app-container">
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                
+                {/* Protected Routes */}
+                <Route path="/" element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <DashboardPage />
+                    </AppLayout>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/dashboard" element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <DashboardPage />
+                    </AppLayout>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/workspaces/:workspaceId" element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <WorkspacePage />
+                    </AppLayout>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/boards/:boardId" element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <BoardPage />
+                    </AppLayout>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/profile" element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <ProfilePage />
+                    </AppLayout>
+                  </ProtectedRoute>
+                } />
+                
+                {/* 404 Page */}
+                <Route path="/404" element={<NotFoundPage />} />
+                <Route path="*" element={<Navigate to="/404" replace />} />
+              </Routes>
             </div>
-            <div className="card">
-              <h3>Sample Task 2</h3>
-              <p>Another sample task to get started.</p>
-            </div>
-          </div>
-          <div className="column">
-            <h2>In Progress</h2>
-            <div className="card">
-              <h3>Sample Task 3</h3>
-              <p>This task is currently being worked on.</p>
-            </div>
-          </div>
-          <div className="column">
-            <h2>Done</h2>
-            <div className="card">
-              <h3>Completed Task</h3>
-              <p>This task has been completed successfully.</p>
-            </div>
-          </div>
-        </div>
-      </main>
+          </Router>
+          
+          {/* Toast Notifications */}
+          <ToastContainer
+            position="top-right"
+            autoClose={1000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="light"
+          />
+        </AppProvider>
+      </AuthProvider>
     </div>
   );
 }
+
+// App Layout Component
+const AppLayout = ({ children }) => {
+  return (
+    <div className="app-layout">
+      <Navbar />
+      <div className="app-content">
+        <Sidebar />
+        <main className="main-content">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+};
 
 export default App;

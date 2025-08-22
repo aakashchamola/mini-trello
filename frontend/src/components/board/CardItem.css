@@ -1,0 +1,136 @@
+.card-item {
+  background: white;
+  border-radius: 6px;
+  padding: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.1s;
+  border: 1px solid transparent;
+}
+
+.card-item:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.card-labels {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.card-label {
+  width: 32px;
+  height: 8px;
+  border-radius: 4px;
+  display: block;
+}
+
+.more-labels {
+  font-size: 10px;
+  color: #666;
+  background: #f0f0f0;
+  padding: 2px 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.card-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin: 0 0 8px 0;
+  line-height: 1.3;
+  word-wrap: break-word;
+}
+
+.card-description {
+  font-size: 12px;
+  color: #666;
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.card-due-date,
+.card-stat,
+.card-assignee {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #f8f9fa;
+  color: #666;
+}
+
+.card-due-date svg,
+.card-stat svg,
+.card-assignee svg {
+  font-size: 10px;
+}
+
+.card-due-date.overdue {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.card-due-date.due-soon {
+  background: #fff3e0;
+  color: #ef6c00;
+}
+
+.card-due-date.due-later {
+  background: #e8f5e8;
+  color: #2e7d32;
+}
+
+.card-stat {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.card-assignee {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .card-item {
+    padding: 10px;
+  }
+  
+  .card-title {
+    font-size: 13px;
+  }
+  
+  .card-description {
+    font-size: 11px;
+  }
+  
+  .card-meta {
+    gap: 6px;
+  }
+  
+  .card-due-date,
+  .card-stat,
+  .card-assignee {
+    font-size: 11px;
+    padding: 1px 4px;
+  }
+}

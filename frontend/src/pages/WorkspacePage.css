@@ -1,0 +1,51 @@
+.workspace-page,
+.profile-page {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.workspace-header,
+.profile-header {
+  margin-bottom: 32px;
+}
+
+.workspace-header h1,
+.profile-header h1 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #333;
+  margin: 0 0 8px 0;
+}
+
+.workspace-header p,
+.profile-header p {
+  font-size: 16px;
+  color: #666;
+  margin: 0;
+}
+
+.profile-content {
+  display: grid;
+  gap: 24px;
+}
+
+.profile-info {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.profile-info h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 16px 0;
+}
+
+.profile-info p {
+  margin: 8px 0;
+  font-size: 14px;
+  color: #666;
+}

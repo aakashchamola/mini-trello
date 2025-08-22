@@ -1,0 +1,103 @@
+.board-list {
+  background: #ebecf0;
+  border-radius: 8px;
+  width: 280px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 200px);
+  flex-shrink: 0;
+}
+
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 8px 4px;
+}
+
+.list-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+  flex: 1;
+}
+
+.list-menu-btn {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.list-menu-btn:hover {
+  background: #ddd;
+  color: #333;
+}
+
+.list-cards {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  margin-bottom: 12px;
+  min-height: 20px;
+  transition: background-color 0.2s;
+}
+
+.list-cards.dragging-over {
+  background: rgba(0, 121, 191, 0.1);
+  border-radius: 4px;
+}
+
+.list-cards .dragging {
+  opacity: 0.5;
+}
+
+.list-footer {
+  margin-top: auto;
+}
+
+.add-card-btn {
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.2s, color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.add-card-btn:hover {
+  background: #ddd;
+  color: #333;
+}
+
+/* Custom scrollbar for cards */
+.list-cards::-webkit-scrollbar {
+  width: 6px;
+}
+
+.list-cards::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.list-cards::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.list-cards::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}

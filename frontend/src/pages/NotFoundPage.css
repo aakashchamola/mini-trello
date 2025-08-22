@@ -1,0 +1,153 @@
+.not-found-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+}
+
+.not-found-content {
+  text-align: center;
+  max-width: 500px;
+  color: white;
+}
+
+.not-found-illustration {
+  margin-bottom: 32px;
+}
+
+.error-code {
+  font-size: 120px;
+  font-weight: 900;
+  line-height: 1;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #ffffff, #e3f2fd);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.error-message {
+  font-size: 24px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  opacity: 0.9;
+}
+
+.not-found-text {
+  margin-bottom: 40px;
+}
+
+.not-found-text h1 {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0 0 16px 0;
+}
+
+.not-found-text p {
+  font-size: 18px;
+  line-height: 1.6;
+  opacity: 0.9;
+  margin: 0;
+}
+
+.not-found-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+
+.primary-btn,
+.secondary-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 200px;
+  justify-content: center;
+}
+
+.primary-btn {
+  background: white;
+  color: #667eea;
+}
+
+.primary-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
+}
+
+.secondary-btn {
+  background: transparent;
+  color: white;
+  border: 2px solid white;
+}
+
+.secondary-btn:hover {
+  background: white;
+  color: #667eea;
+  transform: translateY(-2px);
+}
+
+.primary-btn svg,
+.secondary-btn svg {
+  font-size: 18px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .error-code {
+    font-size: 80px;
+  }
+  
+  .error-message {
+    font-size: 18px;
+  }
+  
+  .not-found-text h1 {
+    font-size: 24px;
+  }
+  
+  .not-found-text p {
+    font-size: 16px;
+  }
+  
+  .primary-btn,
+  .secondary-btn {
+    font-size: 14px;
+    min-width: 180px;
+  }
+}
+
+@media (max-width: 480px) {
+  .not-found-page {
+    padding: 16px;
+  }
+  
+  .error-code {
+    font-size: 60px;
+  }
+  
+  .error-message {
+    font-size: 16px;
+    letter-spacing: 1px;
+  }
+  
+  .not-found-text h1 {
+    font-size: 20px;
+  }
+  
+  .not-found-text p {
+    font-size: 14px;
+  }
+}

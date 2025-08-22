@@ -3,6 +3,7 @@
 
 const User = require('../models/User');
 const { generateTokenPair, verifyRefreshToken } = require('../utils/jwt');
+const googleAuthService = require('../services/googleAuthService');
 const { 
   registerSchema, 
   loginSchema, 
@@ -291,6 +292,142 @@ const logout = (req, res) => {
   });
 };
 
+// Google Login
+const googleLogin = async (req, res) => {
+  try {
+    const { credential } = req.body;
+    
+    if (!credential) {
+      return res.status(400).json({
+        error: 'Missing credential',
+        message: 'Google credential is required'
+      });
+    }
+
+    // Verify Google token
+    const googleProfile = await googleAuthService.verifyGoogleToken(credential);
+    
+    // Find existing user by email or Google ID
+    let user = await User.findOne({
+      where: {
+        [require('sequelize').Op.or]: [
+          { email: googleProfile.email },
+          { google_id: googleProfile.googleId }
+        ]
+      }
+    });
+
+    if (!user) {
+      // User doesn't exist, create a new one automatically
+      const userData = googleAuthService.extractUserDataForRegistration(googleProfile);
+      
+      // Ensure username is unique
+      let uniqueUsername = userData.username;
+      let counter = 1;
+      while (await User.findOne({ where: { username: uniqueUsername } })) {
+        uniqueUsername = `${userData.username}${counter}`;
+        counter++;
+      }
+      userData.username = uniqueUsername;
+
+      // Create new user
+      user = await User.create(userData);
+    } else {
+      // Update Google ID if not set
+      if (!user.google_id) {
+        await user.update({ google_id: googleProfile.googleId });
+      }
+    }
+
+    // Generate tokens
+    const { accessToken, refreshToken } = generateTokenPair(user.id);
+
+    res.json({
+      message: 'Authentication successful',
+      user: user.toSafeJSON(),
+      tokens: {
+        accessToken,
+        refreshToken
+      }
+    });
+
+  } catch (error) {
+    console.error('Google login error:', error);
+    res.status(400).json({
+      error: 'Google authentication failed',
+      message: error.message
+    });
+  }
+};
+
+// Google Register
+const googleRegister = async (req, res) => {
+  try {
+    const { credential } = req.body;
+    
+    if (!credential) {
+      return res.status(400).json({
+        error: 'Missing credential',
+        message: 'Google credential is required'
+      });
+    }
+
+    // Verify Google token
+    const googleProfile = await googleAuthService.verifyGoogleToken(credential);
+    
+    // Check if user already exists
+    const existingUser = await User.findOne({
+      where: {
+        [require('sequelize').Op.or]: [
+          { email: googleProfile.email },
+          { google_id: googleProfile.googleId }
+        ]
+      }
+    });
+
+    if (existingUser) {
+      return res.status(409).json({
+        error: 'User already exists',
+        message: 'An account with this email already exists. Please sign in instead.'
+      });
+    }
+
+    // Create user data from Google profile
+    const userData = googleAuthService.extractUserDataForRegistration(googleProfile);
+    
+    // Ensure username is unique
+    let uniqueUsername = userData.username;
+    let counter = 1;
+    while (await User.findOne({ where: { username: uniqueUsername } })) {
+      uniqueUsername = `${userData.username}${counter}`;
+      counter++;
+    }
+    userData.username = uniqueUsername;
+
+    // Create new user
+    const newUser = await User.create(userData);
+
+    // Generate tokens
+    const { accessToken, refreshToken } = generateTokenPair(newUser.id);
+
+    res.status(201).json({
+      message: 'Registration successful',
+      user: newUser.toSafeJSON(),
+      tokens: {
+        accessToken,
+        refreshToken
+      }
+    });
+
+  } catch (error) {
+    console.error('Google registration error:', error);
+    res.status(400).json({
+      error: 'Google registration failed',
+      message: error.message
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -298,5 +435,7 @@ module.exports = {
   getProfile,
   updateProfile,
   changePassword,
-  logout
+  logout,
+  googleLogin,
+  googleRegister
 };

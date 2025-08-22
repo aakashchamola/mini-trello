@@ -125,6 +125,74 @@ router.post('/login', authController.login);
  */
 router.post('/refresh-token', authController.refreshToken);
 
+/**
+ * @swagger
+ * /api/auth/google/login:
+ *   post:
+ *     summary: Login with Google
+ *     description: Authenticate user using Google OAuth credentials
+ *     tags: [Authentication]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               credential:
+ *                 type: string
+ *                 description: Google ID token
+ *             required:
+ *               - credential
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthResponse'
+ *       400:
+ *         description: Invalid Google token
+ *       404:
+ *         description: User not found
+ */
+router.post('/google/login', authController.googleLogin);
+
+/**
+ * @swagger
+ * /api/auth/google/register:
+ *   post:
+ *     summary: Register with Google
+ *     description: Create a new user account using Google OAuth credentials
+ *     tags: [Authentication]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               credential:
+ *                 type: string
+ *                 description: Google ID token
+ *             required:
+ *               - credential
+ *     responses:
+ *       201:
+ *         description: Registration successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthResponse'
+ *       400:
+ *         description: Invalid Google token
+ *       409:
+ *         description: User already exists
+ */
+router.post('/google/register', authController.googleRegister);
+
 // Protected routes (authentication required)
 router.use(authenticateToken); // Apply authentication middleware to all routes below
 
