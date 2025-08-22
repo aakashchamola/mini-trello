@@ -2,6 +2,7 @@ const List = require('../models/List');
 const Board = require('../models/Board');
 const { createListSchema, updateListSchema, reorderListsSchema } = require('../validation/listValidation');
 const { Op } = require('sequelize');
+const positionService = require('../services/positionService');
 
 const listController = {
   // Create a new list in a board
@@ -31,39 +32,40 @@ const listController = {
 
       console.log('Creating list for board:', boardIdNum, 'with data:', value);
 
-      // Get the next position if not provided
-      let position = value.position;
-      if (position === undefined) {
-        const maxPosition = await List.max('position', {
-          where: { boardId: boardIdNum }
-        });
-        position = (maxPosition || -1) + 1;
-      }
+      // Always generate a unique position to avoid conflicts
+      let position = await positionService.getUniqueListPosition(boardIdNum);
 
       console.log('List position calculated:', position);
 
-      // Use transaction to ensure data consistency
-      const { sequelize } = require('../config/database');
-      const list = await sequelize.transaction(async (t) => {
-        // Handle position conflicts by shifting existing lists
-        await List.increment('position', {
-          where: {
-            boardId: boardIdNum,
-            position: { [Op.gte]: position }
-          },
-          transaction: t
-        });
-
-        // Create the new list
-        const listData = {
-          ...value,
-          position,
-          boardId: boardIdNum
-        };
-        
-        console.log('Creating list with data:', listData);
-        return await List.create(listData, { transaction: t });
-      });
+      // Create the new list directly (no need for position shifting with decimal positions)
+      const listData = {
+        ...value,
+        position,
+        boardId: boardIdNum
+      };
+      
+      console.log('Creating list with data:', listData);
+      
+      // Try to create the list, with retry logic for position conflicts
+      let list;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries) {
+        try {
+          list = await List.create(listData);
+          break; // Success, exit loop
+        } catch (error) {
+          if (error.name === 'SequelizeUniqueConstraintError' && retryCount < maxRetries - 1) {
+            console.log(`Position conflict detected, generating new position (attempt ${retryCount + 1})`);
+            // Generate a new unique position and try again
+            listData.position = await positionService.getUniqueListPosition(boardIdNum);
+            retryCount++;
+          } else {
+            throw error; // Re-throw if not a position conflict or max retries reached
+          }
+        }
+      }
 
       console.log('List created successfully:', list);
 

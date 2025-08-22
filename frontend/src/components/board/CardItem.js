@@ -97,7 +97,7 @@ const CardItem = ({ card, onClick, onUpdated, onDeleted, boardId, listId }) => {
       )}
 
       {/* Card Title */}
-      <h4 className="card-title">{card.title}</h4>
+      <h3 className="card-title-1">{card.title}</h3>
 
       {/* Card Description Preview */}
       {card.description && (

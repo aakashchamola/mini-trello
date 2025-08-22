@@ -72,6 +72,26 @@ class SocketHandler {
       this.handleCardMoved(socket, data);
     });
 
+    // Handle list move events
+    socket.on('list-moved', (data) => {
+      this.handleListMoved(socket, data);
+    });
+
+    // Handle drag start events
+    socket.on('drag-start', (data) => {
+      this.handleDragStart(socket, data);
+    });
+
+    // Handle drag end events
+    socket.on('drag-end', (data) => {
+      this.handleDragEnd(socket, data);
+    });
+
+    // Handle bulk position updates
+    socket.on('bulk-position-update', (data) => {
+      this.handleBulkPositionUpdate(socket, data);
+    });
+
     // Handle card updates
     socket.on('card-updated', (data) => {
       this.handleCardUpdated(socket, data);
@@ -421,6 +441,90 @@ class SocketHandler {
       activity,
       timestamp: new Date().toISOString()
     });
+  }
+
+  // Handle list move events
+  handleListMoved(socket, data) {
+    const { listId, newPosition, boardId, listData } = data;
+    const userId = socket.userId;
+    const currentConnection = this.connectedUsers.get(userId);
+
+    if (!currentConnection || !currentConnection.boardId || currentConnection.boardId != boardId) {
+      return;
+    }
+
+    // Broadcast list move to all other users in the board
+    socket.to(`board-${boardId}`).emit('list-moved', {
+      listId,
+      newPosition,
+      listData,
+      movedBy: socket.userInfo,
+      timestamp: new Date().toISOString()
+    });
+
+    console.log(`List ${listId} moved by ${socket.userInfo.username} to position ${newPosition}`);
+  }
+
+  // Handle drag start events (visual feedback)
+  handleDragStart(socket, data) {
+    const { type, id, boardId } = data; // type: 'card' or 'list'
+    const userId = socket.userId;
+    const currentConnection = this.connectedUsers.get(userId);
+
+    if (!currentConnection || !currentConnection.boardId || currentConnection.boardId != boardId) {
+      return;
+    }
+
+    // Broadcast drag start to show visual indicators to other users
+    socket.to(`board-${boardId}`).emit('drag-start', {
+      type,
+      id,
+      draggedBy: socket.userInfo,
+      timestamp: new Date().toISOString()
+    });
+
+    console.log(`${type} ${id} drag started by ${socket.userInfo.username}`);
+  }
+
+  // Handle drag end events
+  handleDragEnd(socket, data) {
+    const { type, id, boardId } = data;
+    const userId = socket.userId;
+    const currentConnection = this.connectedUsers.get(userId);
+
+    if (!currentConnection || !currentConnection.boardId || currentConnection.boardId != boardId) {
+      return;
+    }
+
+    // Broadcast drag end to remove visual indicators
+    socket.to(`board-${boardId}`).emit('drag-end', {
+      type,
+      id,
+      draggedBy: socket.userInfo,
+      timestamp: new Date().toISOString()
+    });
+
+    console.log(`${type} ${id} drag ended by ${socket.userInfo.username}`);
+  }
+
+  // Handle bulk position updates (for performance optimization)
+  handleBulkPositionUpdate(socket, data) {
+    const { updates, boardId } = data; // updates: [{ type, id, position, listId? }]
+    const userId = socket.userId;
+    const currentConnection = this.connectedUsers.get(userId);
+
+    if (!currentConnection || !currentConnection.boardId || currentConnection.boardId != boardId) {
+      return;
+    }
+
+    // Broadcast bulk updates to all other users in the board
+    socket.to(`board-${boardId}`).emit('bulk-position-update', {
+      updates,
+      updatedBy: socket.userInfo,
+      timestamp: new Date().toISOString()
+    });
+
+    console.log(`Bulk position update by ${socket.userInfo.username}: ${updates.length} items`);
   }
 
   // Get connected users for a board

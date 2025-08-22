@@ -273,6 +273,63 @@ class RealTimeMiddleware {
       next();
     };
   }
+
+  // Middleware to emit drag and drop events
+  emitDragDropEvents() {
+    return (req, res, next) => {
+      // Store original res.json to intercept response
+      const originalJson = res.json;
+      
+      res.json = function(data) {
+        // Call original json method
+        originalJson.call(this, data);
+        
+        // Emit real-time events based on method and route
+        const method = req.method;
+        const route = req.route?.path;
+        
+        try {
+          if (method === 'PUT' && route === '/cards/:cardId/move') {
+            // Card moved via drag and drop
+            if (data.success && data.card) {
+              req.boardEvents?.emitCardMoved(
+                req.params.boardId,
+                req.params.cardId,
+                req.body.sourceListId,
+                req.body.targetListId,
+                req.user,
+                data.card
+              );
+            }
+          } else if (method === 'PUT' && route === '/lists/:listId/move') {
+            // List moved via drag and drop
+            if (data.success && data.list) {
+              req.boardEvents?.emitListMoved(
+                req.params.boardId,
+                req.params.listId,
+                req.body.targetIndex,
+                req.user,
+                data.list
+              );
+            }
+          } else if (method === 'PUT' && route === '/bulk-update') {
+            // Bulk position update
+            if (data.success && data.results) {
+              req.boardEvents?.emitBulkPositionUpdate(
+                req.params.boardId,
+                data.results,
+                req.user
+              );
+            }
+          }
+        } catch (error) {
+          console.error('Error emitting drag drop event:', error);
+        }
+      };
+      
+      next();
+    };
+  }
 }
 
 module.exports = RealTimeMiddleware;

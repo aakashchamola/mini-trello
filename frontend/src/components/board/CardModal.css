@@ -283,10 +283,12 @@
   background: #0079bf;
   color: white;
   border: none;
-  padding: 10px 20px;
+  padding: 20px;
   border-radius: 4px;
   cursor: pointer;
+  font-size: 14px;
   font-weight: 500;
+  width: auto;
 }
 
 .comment-btn:disabled {
@@ -331,6 +333,7 @@
   cursor: pointer;
   transition: background-color 0.2s;
   border: none;
+  width: auto;
 }
 
 .edit-actions .save-btn {
@@ -345,6 +348,7 @@
 .edit-actions .cancel-btn {
   background: #f4f5f7;
   color: #172b4d;
+  width: auto;
 }
 
 .edit-actions .cancel-btn:hover:not(:disabled) {

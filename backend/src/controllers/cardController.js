@@ -4,6 +4,7 @@ const Board = require('../models/Board');
 const User = require('../models/User');
 const { createCardSchema, updateCardSchema, moveCardSchema, reorderCardsSchema } = require('../validation/cardValidation');
 const { Op } = require('sequelize');
+const positionService = require('../services/positionService');
 
 const cardController = {
   // Create a new card in a list
@@ -50,40 +51,41 @@ const cardController = {
         });
       }
 
-      // Get the next position if not provided
-      let position = value.position;
-      if (position === undefined) {
-        const maxPosition = await Card.max('position', {
-          where: { listId: listIdNum }
-        });
-        position = (maxPosition || -1) + 1;
-      }
+      // Always generate a unique position to avoid conflicts
+      let position = await positionService.getUniqueCardPosition(listIdNum);
 
       console.log('Card position calculated:', position);
 
-      // Use transaction to ensure data consistency
-      const { sequelize } = require('../config/database');
-      const card = await sequelize.transaction(async (t) => {
-        // Handle position conflicts by shifting existing cards
-        await Card.increment('position', {
-          where: {
-            listId: listIdNum,
-            position: { [Op.gte]: position }
-          },
-          transaction: t
-        });
-
-        // Create the new card
-        const cardData = {
-          ...value,
-          position,
-          listId: listIdNum,
-          createdBy: req.user.id
-        };
-        
-        console.log('Creating card with data:', cardData);
-        return await Card.create(cardData, { transaction: t });
-      });
+      // Create the new card directly (no need for position shifting with decimal positions)
+      const cardData = {
+        ...value,
+        position,
+        listId: listIdNum,
+        createdBy: req.user.id
+      };
+      
+      console.log('Creating card with data:', cardData);
+      
+      // Try to create the card, with retry logic for position conflicts
+      let card;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries) {
+        try {
+          card = await Card.create(cardData);
+          break; // Success, exit loop
+        } catch (error) {
+          if (error.name === 'SequelizeUniqueConstraintError' && retryCount < maxRetries - 1) {
+            console.log(`Position conflict detected, generating new position (attempt ${retryCount + 1})`);
+            // Generate a new unique position and try again
+            cardData.position = await positionService.getUniqueCardPosition(listIdNum);
+            retryCount++;
+          } else {
+            throw error; // Re-throw if not a position conflict or max retries reached
+          }
+        }
+      }
 
       console.log('Card created successfully:', card);
 

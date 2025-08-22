@@ -31,9 +31,9 @@ const Card = sequelize.define('Card', {
     }
   },
   position: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.DECIMAL(15, 5), // Use decimal for fractional positioning
     allowNull: false,
-    defaultValue: 0,
+    defaultValue: 65536.00000,
     validate: {
       min: {
         args: [0],
@@ -129,18 +129,26 @@ const Card = sequelize.define('Card', {
   underscored: true, // This ensures Sequelize uses snake_case for field names
   indexes: [
     {
+      name: 'cards_list_id_index',
       fields: ['list_id']
     },
     {
+      name: 'cards_created_by_index',
       fields: ['created_by']
     },
     {
+      name: 'cards_priority_index',
       fields: ['priority']
     },
     {
+      name: 'cards_due_date_index',
       fields: ['due_date']
+    },
+    {
+      name: 'cards_list_id_position_unique',
+      unique: true,
+      fields: ['list_id', 'position']
     }
-    // Removed unique constraint on ['list_id', 'position'] to allow easier position updates
   ]
 });
 

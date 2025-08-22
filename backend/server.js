@@ -29,6 +29,7 @@ const boardCollaborationRoutes = require('./src/routes/boardCollaboration');
 const commentRoutes = require('./src/routes/comments');
 const workspaceRoutes = require('./src/routes/workspaces');
 const realtimeRoutes = require('./src/routes/realtime');
+const dragDropRoutes = require('./src/routes/dragDrop');
 
 // Create Express application
 const app = express();
@@ -194,6 +195,12 @@ app.get('/api', (req, res) => {
   });
 });
 
+// Add socket.io to request object for real-time communication
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
+
 // Authentication routes
 app.use('/api/auth', authRoutes);
 
@@ -237,6 +244,11 @@ app.use('/api', workspaceRoutes);
 
 // Real-time routes
 app.use('/api', realtimeRoutes);
+
+// Drag and drop routes with real-time events
+app.use('/api/boards/:boardId/drag-drop', 
+  dragDropRoutes
+);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

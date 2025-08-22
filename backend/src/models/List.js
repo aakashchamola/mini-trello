@@ -21,9 +21,9 @@ const List = sequelize.define('List', {
     }
   },
   position: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.DECIMAL(15, 5), // Use decimal for fractional positioning
     allowNull: false,
-    defaultValue: 0,
+    defaultValue: 65536.00000,
     validate: {
       min: {
         args: [0],
@@ -44,16 +44,18 @@ const List = sequelize.define('List', {
 }, {
   tableName: 'lists',
   timestamps: true,
+  underscored: true, // This ensures Sequelize uses snake_case for field names
   indexes: [
     {
+      name: 'lists_board_id_index',
       fields: ['board_id']
     },
     {
+      name: 'lists_board_id_position_unique',
       unique: true,
       fields: ['board_id', 'position']
     }
-  ],
-  underscored: true // This ensures Sequelize uses snake_case for field names
+  ]
 });
 
 module.exports = List;
