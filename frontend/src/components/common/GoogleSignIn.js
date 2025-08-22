@@ -65,7 +65,7 @@ const GoogleSignIn = ({ mode = 'signin', onSuccess, onError }) => {
   }, [mode, handleGoogleResponse, onError]);
 
   return (
-    <div className="google-signin-container">
+    <div className="google-signin-btn-fixed">
       <div ref={googleButtonRef}></div>
     </div>
   );

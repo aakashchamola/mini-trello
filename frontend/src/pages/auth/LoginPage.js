@@ -1,20 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Formik, Form, Field, ErrorMessage } from 'formik';
-import * as Yup from 'yup';
-import { FiEye, FiEyeOff, FiMail, FiLock } from 'react-icons/fi';
-import { useAuth } from '../../contexts/AuthContext';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
-import GoogleSignIn from '../../components/common/GoogleSignIn';
-import './AuthPages.css';
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Formik, Form, Field, ErrorMessage } from "formik";
+import * as Yup from "yup";
+import { FiEye, FiEyeOff, FiMail, FiLock } from "react-icons/fi";
+import { useAuth } from "../../contexts/AuthContext";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
+import GoogleSignIn from "../../components/common/GoogleSignIn";
+import "./AuthPages.css";
 
 const LoginSchema = Yup.object().shape({
   email: Yup.string()
-    .email('Invalid email address')
-    .required('Email is required'),
+    .email("Invalid email address")
+    .required("Email is required"),
   password: Yup.string()
-    .min(6, 'Password must be at least 6 characters')
-    .required('Password is required')
+    .min(6, "Password must be at least 6 characters")
+    .required("Password is required"),
 });
 
 const LoginPage = () => {
@@ -23,7 +23,7 @@ const LoginPage = () => {
   const { login, register, isLoading, isAuthenticated, error } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
 
-  const from = location.state?.from?.pathname || '/dashboard';
+  const from = location.state?.from?.pathname || "/dashboard";
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -36,12 +36,11 @@ const LoginPage = () => {
       await login({ email: values.email, password: values.password });
       navigate(from, { replace: true });
     } catch (error) {
-      console.error('Login error:', error);
+      console.error("Login error:", error);
     } finally {
       setSubmitting(false);
     }
   };
-
 
   if (isLoading) {
     return <LoadingSpinner size="large" message="Checking authentication..." />;
@@ -59,51 +58,58 @@ const LoginPage = () => {
         </div>
 
         <Formik
-          initialValues={{ email: '', password: '' }}
+          initialValues={{ email: "", password: "" }}
           validationSchema={LoginSchema}
           onSubmit={handleSubmit}
         >
           {({ isSubmitting, touched, errors }) => (
             <Form className="auth-form">
-              {error && (
-                <div className="error-message">
-                  {error}
-                </div>
-              )}
-// TODO: need to fix the google signin button ui
+              {/* {error && <div className="error-message">{error}</div>} */}
               {/* Google Sign-In */}
-              <GoogleSignIn 
-                mode="signin" 
+              <GoogleSignIn
+                mode="signin"
                 onSuccess={() => navigate(from, { replace: true })}
-                onError={(error) => console.error('Google Sign-In error:', error)}
+                onError={(error) =>
+                  console.error("Google Sign-In error:", error)
+                }
               />
-// TODO: need to fix the form element ui
               <div className="form-group">
                 <label htmlFor="email">Email</label>
-                <div className="input-container">
-                  <FiMail className="input-icon" />
-
+                <div className="input-group-fixed">
+                  <span>
+                    <FiMail className="input-icon-fixed" />
+                  </span>
                   <Field
                     type="email"
                     name="email"
                     id="email"
                     placeholder="Enter your email"
-                    className={`form-input ${touched.email && errors.email ? 'error' : ''}`}
+                    className={`login-input-fixed ${
+                      touched.email && errors.email ? "error" : ""
+                    }`}
                   />
                 </div>
-                <ErrorMessage name="email" component="div" className="field-error" />
+                <ErrorMessage
+                  name="email"
+                  component="div"
+                  className="field-error"
+                />
               </div>
 
               <div className="form-group">
                 <label htmlFor="password">Password</label>
-                <div className="input-container">
-                  <FiLock className="input-icon" />
+                <div className="input-group-fixed">
+                  <span>
+                    <FiLock className="input-icon-fixed" />
+                  </span>
                   <Field
-                    type={showPassword ? 'text' : 'password'}
+                    type={showPassword ? "text" : "password"}
                     name="password"
                     id="password"
                     placeholder="Enter your password"
-                    className={`form-input ${touched.password && errors.password ? 'error' : ''}`}
+                    className={`login-input-fixed ${
+                      touched.password && errors.password ? "error" : ""
+                    }`}
                   />
                   <button
                     type="button"
@@ -113,7 +119,11 @@ const LoginPage = () => {
                     {showPassword ? <FiEyeOff /> : <FiEye />}
                   </button>
                 </div>
-                <ErrorMessage name="password" component="div" className="field-error" />
+                <ErrorMessage
+                  name="password"
+                  component="div"
+                  className="field-error"
+                />
               </div>
 
               <div className="form-actions">
@@ -127,11 +137,7 @@ const LoginPage = () => {
                 className="auth-button"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? (
-                  <LoadingSpinner size="small" />
-                ) : (
-                  'Sign In'
-                )}
+                {isSubmitting ? <LoadingSpinner size="small" /> : "Sign In"}
               </button>
             </Form>
           )}
@@ -139,8 +145,7 @@ const LoginPage = () => {
 
         <div className="auth-footer">
           <p>
-            Don't have an account?{' '}
-            <Link to="/register">Sign up here</Link>
+            Don't have an account? <Link to="/register">Sign up here</Link>
           </p>
         </div>
       </div>

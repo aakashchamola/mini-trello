@@ -78,7 +78,7 @@
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 12px;
 }
 
 .form-group {
@@ -113,7 +113,6 @@
 
 .form-input {
   width: 100%;
-  padding: 16px 20px 16px 56px;
   border: 2px solid #e5e7eb;
   border-radius: 12px;
   font-size: 16px;
@@ -184,7 +183,7 @@
   color: #dc2626;
   padding: 16px;
   border-radius: 12px;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
   text-align: center;
   margin-bottom: 20px;
@@ -429,15 +428,15 @@
 
 @media (max-width: 480px) {
   .auth-card {
-    padding: 24px 20px;
+    padding: 20px;
   }
   
   .auth-header {
-    margin-bottom: 32px;
+    margin-bottom: 20px;
   }
   
   .auth-form {
-    gap: 20px;
+    gap: 12px;
   }
 }
 
@@ -536,4 +535,47 @@
 /* Focus management */
 .form-input:focus + .password-toggle {
   color: #0079bf;
+}
+
+/* Google Sign In Button Fix */
+.google-signin-btn-fixed {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  margin: 12px 0;
+  width: 100%;
+}
+
+/* Input Group Fix */
+.input-group-fixed {
+  position: relative;
+  display: flex;
+  align-items: center;
+  /* margin-bottom: 18px; */
+}
+.input-icon-fixed {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+}
+.input-icon-right-fixed {
+  right: 12px;
+  left: auto;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.login-input-fixed {
+  width: 100%;
+  padding: 10px 40px 10px 40px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  background: #fff;
+  box-sizing: border-box;
 }
