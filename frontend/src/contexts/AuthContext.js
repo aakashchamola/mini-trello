@@ -55,6 +55,16 @@ const authReducer = (state, action) => {
       };
 
     case ACTION_TYPES.LOAD_USER_SUCCESS:
+      return {
+        ...state,
+        isLoading: false,
+        isAuthenticated: true,
+        user: action.payload.user || action.payload,
+        token: action.payload.token || state.token,
+        refreshToken: action.payload.refreshToken || state.refreshToken,
+        error: null
+      };
+
     case ACTION_TYPES.UPDATE_PROFILE_SUCCESS:
       return {
         ...state,
@@ -120,13 +130,23 @@ export const AuthProvider = ({ children }) => {
         try {
           const user = JSON.parse(userString);
           
+          // Set tokens in state first
+          dispatch({
+            type: ACTION_TYPES.LOGIN_SUCCESS,
+            payload: { user, accessToken: token, refreshToken }
+          });
+          
           // Verify token is still valid by making a request
           dispatch({ type: ACTION_TYPES.LOAD_USER_START });
           const response = await authAPI.getProfile();
           
           dispatch({
             type: ACTION_TYPES.LOAD_USER_SUCCESS,
-            payload: response.data.data
+            payload: {
+              user: response.data.data,
+              token,
+              refreshToken
+            }
           });
 
           // Connect to socket
