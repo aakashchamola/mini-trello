@@ -211,16 +211,55 @@ const models = {
 // Sync database tables
 const syncDatabase = async (force = false) => {
   try {
-    // Only force recreation if explicitly requested via parameter
-    // In development, preserve data by default
-    await sequelize.sync({ 
-      force: force, 
-      alter: !force // Use alter mode when not forcing to preserve data
-    });
+    const fs = require('fs');
+    const path = require('path');
+    
+    // Check if we're using SQLite and if the database file is very small or doesn't exist
+    const useMySQL = process.env.USE_MYSQL === 'true';
+    let shouldForceSync = force;
+    
+    if (!useMySQL) {
+      const dbPath = path.join(__dirname, '../../database.sqlite');
+      const dbExists = fs.existsSync(dbPath);
+      
+      if (!dbExists) {
+        console.log('SQLite database file not found, creating new database...');
+        shouldForceSync = true;
+      } else {
+        const stats = fs.statSync(dbPath);
+        // If the SQLite file is very small (less than 10KB), it's likely empty or corrupted
+        if (stats.size < 10240) {
+          console.log('SQLite database appears to be empty or corrupted, recreating...');
+          shouldForceSync = true;
+        }
+      }
+    }
+    
+    if (shouldForceSync) {
+      console.log('Performing full database sync (creating/recreating tables)...');
+      await sequelize.sync({ force: true });
+    } else {
+      console.log('Performing safe database sync (preserving existing data)...');
+      await sequelize.sync({ alter: true });
+    }
+    
     console.log('Database synchronized successfully');
   } catch (error) {
     console.error('Database synchronization failed:', error);
-    throw error;
+    
+    // If alter fails on SQLite, try force sync as fallback
+    if (!force && process.env.USE_MYSQL !== 'true') {
+      console.log('Alter sync failed, attempting force sync for SQLite...');
+      try {
+        await sequelize.sync({ force: true });
+        console.log('Database force sync completed successfully');
+      } catch (forceError) {
+        console.error('Force sync also failed:', forceError);
+        throw forceError;
+      }
+    } else {
+      throw error;
+    }
   }
 };
 
