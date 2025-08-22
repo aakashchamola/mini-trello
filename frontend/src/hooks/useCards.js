@@ -155,6 +155,10 @@ export const useUpdateCard = () => {
     mutationFn: async ({ boardId, listId, cardId, updates, cardData }) => {
       // Support both 'updates' and 'cardData' parameter names for backward compatibility
       const updateData = updates || cardData;
+      
+      console.log('useUpdateCard - Parameters:', { boardId, listId, cardId, updateData });
+      console.log('useUpdateCard - cardId type:', typeof cardId, 'value:', cardId);
+      
       const response = await cardAPI.update(boardId, listId, cardId, updateData);
       return response.data?.card || response.data;
     },

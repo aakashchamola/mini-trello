@@ -69,16 +69,28 @@ const listController = {
 
       console.log('List created successfully:', list);
 
+      const newList = {
+        id: list.id,
+        title: list.title,
+        position: list.position,
+        boardId: list.boardId,
+        createdAt: list.createdAt,
+        updatedAt: list.updatedAt
+      };
+
+      // Emit real-time update to all clients on this board
+      if (req.io) {
+        req.io.to(`board-${boardIdNum}`).emit('list:created', {
+          list: newList,
+          boardId: boardIdNum,
+          userId: req.user.id,
+          timestamp: new Date()
+        });
+      }
+
       res.status(201).json({
         message: 'List created successfully',
-        list: {
-          id: list.id,
-          title: list.title,
-          position: list.position,
-          boardId: list.boardId,
-          createdAt: list.createdAt,
-          updatedAt: list.updatedAt
-        }
+        list: newList
       });
     } catch (error) {
       console.error('Create list error:', error);
@@ -251,16 +263,28 @@ const listController = {
 
       console.log('List updated successfully:', updatedList);
 
+      const updatedListData = {
+        id: updatedList.id,
+        title: updatedList.title,
+        position: updatedList.position,
+        boardId: updatedList.boardId,
+        createdAt: updatedList.createdAt,
+        updatedAt: updatedList.updatedAt
+      };
+
+      // Emit real-time update to all clients on this board
+      if (req.io) {
+        req.io.to(`board-${board.id}`).emit('list:updated', {
+          list: updatedListData,
+          boardId: board.id,
+          userId: req.user.id,
+          timestamp: new Date()
+        });
+      }
+
       res.json({
         message: 'List updated successfully',
-        list: {
-          id: updatedList.id,
-          title: updatedList.title,
-          position: updatedList.position,
-          boardId: updatedList.boardId,
-          createdAt: updatedList.createdAt,
-          updatedAt: updatedList.updatedAt
-        }
+        list: updatedListData
       });
     } catch (error) {
       console.error('Update list error:', error);
@@ -394,6 +418,16 @@ const listController = {
           transaction: t
         });
       });
+
+      // Emit real-time update to all clients on this board
+      if (req.io) {
+        req.io.to(`board-${board.id}`).emit('list:deleted', {
+          listId: list.id,
+          boardId: board.id,
+          userId: req.user.id,
+          timestamp: new Date()
+        });
+      }
 
       res.json({
         message: 'List deleted successfully'

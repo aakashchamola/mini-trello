@@ -31,7 +31,7 @@ class SocketService {
       });
 
       this.socket.on('connect', () => {
-        console.log('Socket connected');
+        console.log('Socket connected successfully');
         this.isConnected = true;
       });
 
@@ -93,6 +93,7 @@ class SocketService {
     }
 
     if (this.currentBoardId === boardId) {
+      console.log('Already in board', boardId);
       return; // Already in this board
     }
 

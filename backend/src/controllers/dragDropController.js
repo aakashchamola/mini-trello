@@ -65,7 +65,7 @@ class DragDropController {
 
       // Emit socket event for real-time updates
       if (req.io) {
-        req.io.to(`board-${req.board.id}`).emit('card-moved', {
+        req.io.to(`board-${req.board.id}`).emit('card:moved', {
           cardId: card.id,
           fromListId: oldListId,
           toListId: targetListId,
@@ -154,7 +154,7 @@ class DragDropController {
 
       // Emit socket event for real-time updates
       if (req.io) {
-        req.io.to(`board-${req.board.id}`).emit('list-moved', {
+        req.io.to(`board-${req.board.id}`).emit('list:moved', {
           listId: list.id,
           newPosition: newPosition,
           listData: {

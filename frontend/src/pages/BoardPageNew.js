@@ -1,10 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { 
   FiPlus, 
   FiActivity
 } from 'react-icons/fi';
+import { useQueryClient } from '@tanstack/react-query';
 import { useUI } from '../contexts/UIContext';
 import { 
   useBoardWithData, 
@@ -20,6 +21,7 @@ import {
   useMoveCard
 } from '../hooks';
 import { calculateNewPosition, calculateReorderPositions } from '../utils/positionUtils';
+import socketService from '../services/socket';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import BoardHeader from '../components/board/BoardHeader';
 import BoardListNew from '../components/board/BoardListNew';
@@ -31,6 +33,7 @@ import './BoardPage.css';
 const BoardPageNew = () => {
   const { boardId } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { 
     modals, 
     openModal, 
@@ -74,6 +77,69 @@ const BoardPageNew = () => {
   const updateCardMutation = useUpdateCard();
   const deleteCardMutation = useDeleteCard();
   const moveCardMutation = useMoveCard();
+
+  // Socket.io integration for real-time updates
+  useEffect(() => {
+    if (!boardId) return;
+
+    // Connect to socket service
+    socketService.connect();
+    socketService.joinBoard(boardId);
+
+    // Set up socket event listeners
+    const handleCardCreated = (data) => {
+      console.log('Socket event - Card created:', data);
+      // Invalidate and refetch the list cards
+      queryClient.invalidateQueries({ queryKey: ['listCards', data.listId] });
+    };
+
+    const handleCardUpdated = (data) => {
+      console.log('Socket event - Card updated:', data);
+      // Invalidate and refetch the list cards
+      queryClient.invalidateQueries({ queryKey: ['listCards', data.listId] });
+    };
+
+    const handleCardDeleted = (data) => {
+      console.log('Socket event - Card deleted:', data);
+      // Invalidate and refetch the list cards
+      queryClient.invalidateQueries({ queryKey: ['listCards', data.listId] });
+    };
+
+    const handleListCreated = (data) => {
+      console.log('Socket event - List created:', data);
+      // Invalidate and refetch the board lists
+      queryClient.invalidateQueries({ queryKey: ['lists', boardId] });
+    };
+
+    const handleListUpdated = (data) => {
+      console.log('Socket event - List updated:', data);
+      // Invalidate and refetch the board lists
+      queryClient.invalidateQueries({ queryKey: ['lists', boardId] });
+    };
+
+    const handleListDeleted = (data) => {
+      console.log('Socket event - List deleted:', data);
+      // Invalidate and refetch the board lists
+      queryClient.invalidateQueries({ queryKey: ['lists', boardId] });
+    };    // Register socket event listeners
+    socketService.onCardCreated(handleCardCreated);
+    socketService.onCardUpdated(handleCardUpdated);
+    socketService.onCardDeleted(handleCardDeleted);
+    socketService.onListCreated(handleListCreated);
+    socketService.onListUpdated(handleListUpdated);
+    socketService.onListDeleted(handleListDeleted);
+
+    // Cleanup on unmount
+    return () => {
+      socketService.removeAllListeners('card:created');
+      socketService.removeAllListeners('card:updated');
+      socketService.removeAllListeners('card:deleted');
+      socketService.removeAllListeners('list:created');
+      socketService.removeAllListeners('list:updated');
+      socketService.removeAllListeners('list:deleted');
+      socketService.leaveBoard(boardId);
+    };
+  }, [boardId, queryClient]);
 
   // Handle board not found
   const shouldRedirect = boardError?.response?.status === 404;

@@ -89,23 +89,36 @@ const cardController = {
 
       console.log('Card created successfully:', card);
 
+      const newCard = {
+        id: card.id,
+        title: card.title,
+        description: card.description,
+        position: card.position,
+        priority: card.priority,
+        dueDate: card.dueDate,
+        isCompleted: card.isCompleted,
+        labels: card.labels,
+        assignees: card.assignees,
+        listId: card.listId,
+        createdBy: card.createdBy,
+        createdAt: card.createdAt,
+        updatedAt: card.updatedAt
+      };
+
+      // Emit real-time update to all clients on this board
+      if (req.io) {
+        req.io.to(`board-${boardIdNum}`).emit('card:created', {
+          card: newCard,
+          boardId: boardIdNum,
+          listId: card.listId,
+          userId: req.user.id,
+          timestamp: new Date()
+        });
+      }
+
       res.status(201).json({
         message: 'Card created successfully',
-        card: {
-          id: card.id,
-          title: card.title,
-          description: card.description,
-          position: card.position,
-          priority: card.priority,
-          dueDate: card.dueDate,
-          isCompleted: card.isCompleted,
-          labels: card.labels,
-          assignees: card.assignees,
-          listId: card.listId,
-          createdBy: card.createdBy,
-          createdAt: card.createdAt,
-          updatedAt: card.updatedAt
-        }
+        card: newCard
       });
     } catch (error) {
       console.error('Create card error:', error);
@@ -498,23 +511,36 @@ const cardController = {
 
       await card.update(value);
 
+      const updatedCard = {
+        id: card.id,
+        title: card.title,
+        description: card.description,
+        position: card.position,
+        priority: card.priority,
+        dueDate: card.dueDate,
+        isCompleted: card.isCompleted,
+        labels: card.labels,
+        assignees: card.assignees,
+        listId: card.listId,
+        createdBy: card.createdBy,
+        createdAt: card.createdAt,
+        updatedAt: card.updatedAt
+      };
+
+      // Emit real-time update to all clients on this board
+      if (req.io) {
+        req.io.to(`board-${board.id}`).emit('card:updated', {
+          card: updatedCard,
+          boardId: board.id,
+          listId: card.listId,
+          userId: req.user.id,
+          timestamp: new Date()
+        });
+      }
+
       res.json({
         message: 'Card updated successfully',
-        card: {
-          id: card.id,
-          title: card.title,
-          description: card.description,
-          position: card.position,
-          priority: card.priority,
-          dueDate: card.dueDate,
-          isCompleted: card.isCompleted,
-          labels: card.labels,
-          assignees: card.assignees,
-          listId: card.listId,
-          createdBy: card.createdBy,
-          createdAt: card.createdAt,
-          updatedAt: card.updatedAt
-        }
+        card: updatedCard
       });
     } catch (error) {
       console.error('Update card error:', error);
@@ -736,6 +762,20 @@ const cardController = {
           transaction: t
         });
       });
+
+      // Emit real-time update to all clients on this board
+      if (req.io) {
+        console.log('Emitting card:deleted event to board-' + board.id);
+        req.io.to(`board-${board.id}`).emit('card:deleted', {
+          cardId: card.id,
+          listId: card.listId,
+          boardId: board.id,
+          userId: req.user.id,
+          timestamp: new Date()
+        });
+      } else {
+        console.log('req.io is not available');
+      }
 
       res.json({
         message: 'Card deleted successfully'

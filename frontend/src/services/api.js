@@ -133,7 +133,11 @@ export const cardAPI = {
   search: (boardId, params = {}) => api.get(`/boards/${boardId}/cards/search`, { params }),
   getById: (boardId, listId, cardId, params = {}) => api.get(`/boards/${boardId}/lists/${listId}/cards/${cardId}`, { params }),
   create: (boardId, listId, data) => api.post(`/boards/${boardId}/lists/${listId}/cards`, data),
-  update: (boardId, listId, cardId, data) => api.put(`/boards/${boardId}/lists/${listId}/cards/${cardId}`, data),
+  update: (boardId, listId, cardId, data) => {
+    console.log('cardAPI.update called with:', { boardId, listId, cardId, data });
+    console.log('cardId type in API:', typeof cardId, 'value:', cardId);
+    return api.put(`/boards/${boardId}/lists/${listId}/cards/${cardId}`, data);
+  },
   delete: (boardId, listId, cardId) => api.delete(`/boards/${boardId}/lists/${listId}/cards/${cardId}`),
   move: (boardId, listId, cardId, data) => api.put(`/boards/${boardId}/lists/${listId}/cards/${cardId}/move`, data)
 };

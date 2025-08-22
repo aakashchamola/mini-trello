@@ -21,7 +21,7 @@ class SocketHandler {
 
         const decoded = verifyToken(token);
         const user = await User.findByPk(decoded.userId, {
-          attributes: ['id', 'username', 'email', 'name']
+          attributes: ['id', 'username', 'email', 'first_name', 'last_name']
         });
 
         if (!user) {
