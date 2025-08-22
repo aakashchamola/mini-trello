@@ -19,15 +19,28 @@ const listController = {
 
       // Board access is already checked by middleware
       const board = req.board;
+      
+      // Validate boardId parameter
+      const boardIdNum = parseInt(boardId, 10);
+      if (isNaN(boardIdNum)) {
+        return res.status(400).json({
+          error: 'Invalid board ID',
+          message: 'Board ID must be a valid number'
+        });
+      }
+
+      console.log('Creating list for board:', boardIdNum, 'with data:', value);
 
       // Get the next position if not provided
       let position = value.position;
       if (position === undefined) {
         const maxPosition = await List.max('position', {
-          where: { boardId }
+          where: { boardId: boardIdNum }
         });
         position = (maxPosition || -1) + 1;
       }
+
+      console.log('List position calculated:', position);
 
       // Use transaction to ensure data consistency
       const { sequelize } = require('../config/database');
@@ -35,19 +48,24 @@ const listController = {
         // Handle position conflicts by shifting existing lists
         await List.increment('position', {
           where: {
-            boardId,
+            boardId: boardIdNum,
             position: { [Op.gte]: position }
           },
           transaction: t
         });
 
         // Create the new list
-        return await List.create({
+        const listData = {
           ...value,
           position,
-          boardId
-        }, { transaction: t });
+          boardId: boardIdNum
+        };
+        
+        console.log('Creating list with data:', listData);
+        return await List.create(listData, { transaction: t });
       });
+
+      console.log('List created successfully:', list);
 
       res.status(201).json({
         message: 'List created successfully',
@@ -62,6 +80,24 @@ const listController = {
       });
     } catch (error) {
       console.error('Create list error:', error);
+      
+      // Handle specific Sequelize errors
+      if (error.name === 'SequelizeUniqueConstraintError') {
+        return res.status(409).json({
+          error: 'Duplicate constraint violation',
+          message: 'A list with this position already exists for this board',
+          details: error.errors.map(e => e.message)
+        });
+      }
+      
+      if (error.name === 'SequelizeValidationError') {
+        return res.status(400).json({
+          error: 'Validation error',
+          message: 'Invalid data provided',
+          details: error.errors.map(e => e.message)
+        });
+      }
+      
       res.status(500).json({
         error: 'Internal server error',
         message: 'Failed to create list'
@@ -145,11 +181,24 @@ const listController = {
 
       // Board access is already checked by middleware
       const board = req.board;
+      
+      // Validate parameters
+      const boardIdNum = parseInt(boardId, 10);
+      const listIdNum = parseInt(listId, 10);
+      
+      if (isNaN(boardIdNum) || isNaN(listIdNum)) {
+        return res.status(400).json({
+          error: 'Invalid parameters',
+          message: 'Board ID and List ID must be valid numbers'
+        });
+      }
+
+      console.log('Updating list:', listIdNum, 'in board:', boardIdNum, 'with data:', value);
 
       const list = await List.findOne({
         where: {
-          id: listId,
-          boardId
+          id: listIdNum,
+          boardId: boardIdNum
         }
       });
 
@@ -160,48 +209,77 @@ const listController = {
         });
       }
 
-      // Handle position updates with conflict resolution
-      if (value.position !== undefined && value.position !== list.position) {
-        if (value.position > list.position) {
-          // Moving right - shift left
-          await List.decrement('position', {
-            where: {
-              boardId,
-              position: {
-                [Op.gt]: list.position,
-                [Op.lte]: value.position
-              }
-            }
-          });
-        } else {
-          // Moving left - shift right
-          await List.increment('position', {
-            where: {
-              boardId,
-              position: {
-                [Op.gte]: value.position,
-                [Op.lt]: list.position
-              }
-            }
-          });
+      // Use transaction for position updates to avoid conflicts
+      const { sequelize } = require('../config/database');
+      const updatedList = await sequelize.transaction(async (t) => {
+        // Handle position updates with conflict resolution
+        if (value.position !== undefined && value.position !== list.position) {
+          console.log('Updating position from', list.position, 'to', value.position);
+          
+          if (value.position > list.position) {
+            // Moving right - shift left
+            await List.decrement('position', {
+              where: {
+                boardId: boardIdNum,
+                position: {
+                  [Op.gt]: list.position,
+                  [Op.lte]: value.position
+                }
+              },
+              transaction: t
+            });
+          } else {
+            // Moving left - shift right
+            await List.increment('position', {
+              where: {
+                boardId: boardIdNum,
+                position: {
+                  [Op.gte]: value.position,
+                  [Op.lt]: list.position
+                }
+              },
+              transaction: t
+            });
+          }
         }
-      }
 
-      await list.update(value);
+        await list.update(value, { transaction: t });
+        return list;
+      });
+
+      console.log('List updated successfully:', updatedList);
 
       res.json({
         message: 'List updated successfully',
         list: {
-          id: list.id,
-          title: list.title,
-          position: list.position,
-          boardId: list.boardId,
-          createdAt: list.createdAt,
-          updatedAt: list.updatedAt
+          id: updatedList.id,
+          title: updatedList.title,
+          position: updatedList.position,
+          boardId: updatedList.boardId,
+          createdAt: updatedList.createdAt,
+          updatedAt: updatedList.updatedAt
         }
       });
     } catch (error) {
       console.error('Update list error:', error);
+      
+      // Handle specific Sequelize errors
+      if (error.name === 'SequelizeUniqueConstraintError') {
+        return res.status(409).json({
+          error: 'Duplicate constraint violation',
+          message: 'A list with this position already exists for this board',
+          details: error.errors.map(e => e.message)
+        });
+      }
+      
+      if (error.name === 'SequelizeValidationError') {
+        return res.status(400).json({
+          error: 'Validation error',
+          message: 'Invalid data provided',
+          details: error.errors.map(e => e.message)
+        });
+      }
+      
       res.status(500).json({
         error: 'Internal server error',
         message: 'Failed to update list'

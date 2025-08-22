@@ -127,8 +127,10 @@ export const AuthProvider = ({ children }) => {
       const userString = localStorage.getItem(STORAGE_KEYS.USER);
 
       if (token && refreshToken && userString) {
+        let user;
         try {
-          const user = JSON.parse(userString);
+          user = JSON.parse(userString);
+          console.log('📖 Loaded user from localStorage:', user);
           
           // Set tokens in state first
           dispatch({
@@ -139,11 +141,12 @@ export const AuthProvider = ({ children }) => {
           // Verify token is still valid by making a request
           dispatch({ type: ACTION_TYPES.LOAD_USER_START });
           const response = await authAPI.getProfile();
+          console.log('🔄 Loaded user from API:', response.data.user);
           
           dispatch({
             type: ACTION_TYPES.LOAD_USER_SUCCESS,
             payload: {
-              user: response.data.data,
+              user: response.data.user,
               token,
               refreshToken
             }
@@ -154,14 +157,49 @@ export const AuthProvider = ({ children }) => {
 
         } catch (error) {
           console.error('Failed to load user:', error);
-          localStorage.removeItem(STORAGE_KEYS.TOKEN);
-          localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-          localStorage.removeItem(STORAGE_KEYS.USER);
           
-          dispatch({
-            type: ACTION_TYPES.LOAD_USER_FAILURE,
-            payload: 'Session expired'
-          });
+          // Only clear auth data if it's an authentication error (401/403)
+          // For network errors or server issues, keep the local data
+          const isAuthError = error.response?.status === 401 || 
+                             error.response?.status === 403 ||
+                             error.message?.includes('token') ||
+                             error.message?.includes('unauthorized');
+          
+          if (isAuthError) {
+            console.log('Authentication error detected, clearing stored credentials');
+            localStorage.removeItem(STORAGE_KEYS.TOKEN);
+            localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+            localStorage.removeItem(STORAGE_KEYS.USER);
+            
+            dispatch({
+              type: ACTION_TYPES.LOAD_USER_FAILURE,
+              payload: 'Session expired'
+            });
+          } else {
+            console.log('Network/server error, keeping local user data');
+            // Just stop loading, keep the user data we loaded from localStorage
+            // Only if we successfully parsed the user data
+            if (user) {
+              dispatch({
+                type: ACTION_TYPES.LOAD_USER_SUCCESS,
+                payload: {
+                  user,
+                  token,
+                  refreshToken
+                }
+              });
+            } else {
+              // If user parsing failed, clear everything
+              localStorage.removeItem(STORAGE_KEYS.TOKEN);
+              localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+              localStorage.removeItem(STORAGE_KEYS.USER);
+              
+              dispatch({
+                type: ACTION_TYPES.LOAD_USER_FAILURE,
+                payload: 'Invalid user data'
+              });
+            }
+          }
         }
       } else {
         dispatch({
@@ -305,7 +343,7 @@ export const AuthProvider = ({ children }) => {
   const updateProfile = async (profileData) => {
     try {
       const response = await authAPI.updateProfile(profileData);
-      const updatedUser = response.data.data;
+      const updatedUser = response.data.user;
 
       // Update local storage
       localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
@@ -366,6 +404,8 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem(STORAGE_KEYS.TOKEN, accessToken);
       localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
       localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
+      
+      console.log('🔒 Google user data stored:', user);
 
       dispatch({
         type: ACTION_TYPES.LOGIN_SUCCESS,

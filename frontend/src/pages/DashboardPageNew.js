@@ -257,15 +257,17 @@ const DashboardPage = () => {
                 />
               ))}
               {/* Create Board Card */}
-              <div
-                className="create-board-card"
-                onClick={() => setShowCreateModal(true)}
-              >
-                <div className="create-board-content">
-                  <FiPlus className="create-board-icon" />
-                  <span>Create new board</span>
+              {boards.length > 0 && (
+                <div
+                  className="create-board-card"
+                  onClick={() => setShowCreateModal(true)}
+                >
+                  <div className="create-board-content">
+                    <FiPlus className="create-board-icon" />
+                    <span>Create new board</span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         )}

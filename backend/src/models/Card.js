@@ -106,6 +106,7 @@ const Card = sequelize.define('Card', {
   listId: {
     type: DataTypes.INTEGER,
     allowNull: false,
+    field: 'list_id', // Map to correct database column
     references: {
       model: 'lists',
       key: 'id'
@@ -115,6 +116,7 @@ const Card = sequelize.define('Card', {
   createdBy: {
     type: DataTypes.INTEGER,
     allowNull: false,
+    field: 'created_by', // Map to correct database column
     references: {
       model: 'users',
       key: 'id'
@@ -124,6 +126,7 @@ const Card = sequelize.define('Card', {
 }, {
   tableName: 'cards',
   timestamps: true,
+  underscored: true, // This ensures Sequelize uses snake_case for field names
   indexes: [
     {
       fields: ['list_id']

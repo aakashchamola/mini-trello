@@ -333,9 +333,37 @@ const googleLogin = async (req, res) => {
       // Create new user
       user = await User.create(userData);
     } else {
-      // Update Google ID if not set
+      // Update existing user with latest Google profile info
+      const updateData = {};
+      
+      // Only update if the field is not already set or if it's from Google
       if (!user.google_id) {
-        await user.update({ google_id: googleProfile.googleId });
+        updateData.google_id = googleProfile.googleId;
+      }
+      
+      // Always update avatar from Google (fresher data)
+      if (googleProfile.picture) {
+        updateData.avatar_url = googleProfile.picture;
+      }
+      
+      // Update names if not set
+      if (!user.first_name && googleProfile.firstName) {
+        updateData.first_name = googleProfile.firstName;
+      }
+      if (!user.last_name && googleProfile.lastName) {
+        updateData.last_name = googleProfile.lastName;
+      }
+      
+      // Update email verification status
+      if (googleProfile.emailVerified) {
+        updateData.email_verified = true;
+      }
+      
+      // Apply updates if any
+      if (Object.keys(updateData).length > 0) {
+        await user.update(updateData);
+        // Reload user to get updated data
+        await user.reload();
       }
     }
 

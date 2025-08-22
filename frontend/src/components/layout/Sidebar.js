@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useLocation } from "react-router-dom";
 import {
   FiHome,
@@ -276,14 +277,16 @@ const Sidebar = () => {
         </div>
       </div>
 
-      {/* Create Board Modal */}
-      {showCreateModal && (
-        <CreateBoardModal
-          onClose={() => setShowCreateModal(false)}
-          onBoardCreated={handleBoardCreated}
-          workspaces={workspaces}
-        />
-      )}
+      {/* Create Board Modal rendered via portal to avoid stacking context issues */}
+      {showCreateModal &&
+        createPortal(
+          <CreateBoardModal
+            onClose={() => setShowCreateModal(false)}
+            onBoardCreated={handleBoardCreated}
+            workspaces={workspaces}
+          />,
+          document.body
+        )}
     </div>
   );
 };

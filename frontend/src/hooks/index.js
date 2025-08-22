@@ -9,6 +9,7 @@ export * from './useBoards';
 export * from './useWorkspaces';
 export * from './useLists';
 export * from './useCards';
+export * from './useDebounce';
 export { queryKeys } from './queryKeys';
 
 // Custom hook for local storage

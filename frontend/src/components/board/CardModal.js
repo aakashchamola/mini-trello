@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FiX, FiEdit, FiCalendar, FiUser, FiMessageCircle } from 'react-icons/fi';
 import { commentAPI, cardAPI, handleAPIError } from '../../services/api';
 import { useUpdateCard } from '../../hooks/useCards';
+import { useDebouncedCallback } from '../../hooks/useDebounce';
 import { toast } from 'react-toastify';
 import './CardModal.css';
 
@@ -26,6 +27,7 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [commentLoading, setCommentLoading] = useState(false);
+  const saveInProgress = useRef(false); // Prevent duplicate saves
 
   const updateCardMutation = useUpdateCard();
 
@@ -72,7 +74,15 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
       return;
     }
 
+    // Prevent duplicate calls
+    if (saveInProgress.current || loading) {
+      console.log('Save already in progress, skipping...');
+      return;
+    }
+
+    saveInProgress.current = true;
     setLoading(true);
+    
     try {
       const updateData = {
         title: title.trim(),
@@ -117,8 +127,12 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
       // Error is already handled by the hook with toast
     } finally {
       setLoading(false);
+      saveInProgress.current = false;
     }
   };
+
+  // Debounced save to prevent duplicate API calls
+  const debouncedSave = useDebouncedCallback(handleSave, 300);
 
   const handleAddComment = async () => {
     if (!newComment.trim()) return;

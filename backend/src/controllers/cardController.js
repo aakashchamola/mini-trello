@@ -21,12 +21,25 @@ const cardController = {
 
       // Board access is already checked by middleware
       const board = req.board;
+      
+      // Validate parameters
+      const boardIdNum = parseInt(boardId, 10);
+      const listIdNum = parseInt(listId, 10);
+      
+      if (isNaN(boardIdNum) || isNaN(listIdNum)) {
+        return res.status(400).json({
+          error: 'Invalid parameters',
+          message: 'Board ID and List ID must be valid numbers'
+        });
+      }
+
+      console.log('Creating card for list:', listIdNum, 'in board:', boardIdNum, 'with data:', value);
 
       // Check if list exists in the board
       const list = await List.findOne({
         where: {
-          id: listId,
-          boardId
+          id: listIdNum,
+          boardId: boardIdNum
         }
       });
 
@@ -41,10 +54,12 @@ const cardController = {
       let position = value.position;
       if (position === undefined) {
         const maxPosition = await Card.max('position', {
-          where: { listId }
+          where: { listId: listIdNum }
         });
         position = (maxPosition || -1) + 1;
       }
+
+      console.log('Card position calculated:', position);
 
       // Use transaction to ensure data consistency
       const { sequelize } = require('../config/database');
@@ -52,20 +67,25 @@ const cardController = {
         // Handle position conflicts by shifting existing cards
         await Card.increment('position', {
           where: {
-            listId,
+            listId: listIdNum,
             position: { [Op.gte]: position }
           },
           transaction: t
         });
 
         // Create the new card
-        return await Card.create({
+        const cardData = {
           ...value,
           position,
-          listId,
+          listId: listIdNum,
           createdBy: req.user.id
-        }, { transaction: t });
+        };
+        
+        console.log('Creating card with data:', cardData);
+        return await Card.create(cardData, { transaction: t });
       });
+
+      console.log('Card created successfully:', card);
 
       res.status(201).json({
         message: 'Card created successfully',
@@ -87,6 +107,24 @@ const cardController = {
       });
     } catch (error) {
       console.error('Create card error:', error);
+      
+      // Handle specific Sequelize errors
+      if (error.name === 'SequelizeUniqueConstraintError') {
+        return res.status(409).json({
+          error: 'Duplicate constraint violation',
+          message: 'A card with this position already exists in this list',
+          details: error.errors.map(e => e.message)
+        });
+      }
+      
+      if (error.name === 'SequelizeValidationError') {
+        return res.status(400).json({
+          error: 'Validation error',
+          message: 'Invalid data provided',
+          details: error.errors.map(e => e.message)
+        });
+      }
+      
       res.status(500).json({
         error: 'Internal server error',
         message: 'Failed to create card'

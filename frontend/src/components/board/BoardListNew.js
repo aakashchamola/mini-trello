@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Droppable, Draggable } from 'react-beautiful-dnd';
 import { FiPlus, FiMoreHorizontal, FiEdit2, FiTrash2, FiCheck, FiX } from 'react-icons/fi';
 import CardItem from './CardItem';
 import AddCardForm from '../forms/AddCardForm';
 import { useUpdateList, useDeleteList } from '../../hooks';
+import { useDebouncedCallback } from '../../hooks/useDebounce';
 import './BoardList.css';
 import './BoardEnhancements.css';
 
@@ -22,6 +23,7 @@ const BoardListNew = ({
   const [showListMenu, setShowListMenu] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitle, setEditTitle] = useState(list.title);
+  const updateInProgress = useRef(false); // Prevent duplicate updates
 
   // React Query mutations
   const updateListMutation = useUpdateList();
@@ -54,6 +56,14 @@ const BoardListNew = ({
       return;
     }
 
+    // Prevent duplicate calls
+    if (updateInProgress.current || updateListMutation.isLoading) {
+      console.log('List update already in progress, skipping...');
+      return;
+    }
+
+    updateInProgress.current = true;
+
     try {
       await updateListMutation.mutateAsync({
         boardId,
@@ -70,8 +80,13 @@ const BoardListNew = ({
       console.error('Failed to update list title:', error);
       setEditTitle(list.title);
       setIsEditingTitle(false);
+    } finally {
+      updateInProgress.current = false;
     }
   };
+
+  // Debounced update to prevent duplicate API calls
+  const debouncedUpdateTitle = useDebouncedCallback(handleUpdateTitle, 300);
 
   const handleDeleteList = async () => {
     if (!window.confirm('Are you sure you want to delete this list? All cards in it will be deleted.')) {

@@ -34,6 +34,7 @@ const List = sequelize.define('List', {
   boardId: {
     type: DataTypes.INTEGER,
     allowNull: false,
+    field: 'board_id', // Map to correct database column
     references: {
       model: 'boards',
       key: 'id'
@@ -51,7 +52,8 @@ const List = sequelize.define('List', {
       unique: true,
       fields: ['board_id', 'position']
     }
-  ]
+  ],
+  underscored: true // This ensures Sequelize uses snake_case for field names
 });
 
 module.exports = List;

@@ -152,11 +152,16 @@ export const useUpdateCard = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ boardId, listId, cardId, updates }) => {
-      const response = await cardAPI.update(boardId, listId, cardId, updates);
+    mutationFn: async ({ boardId, listId, cardId, updates, cardData }) => {
+      // Support both 'updates' and 'cardData' parameter names for backward compatibility
+      const updateData = updates || cardData;
+      const response = await cardAPI.update(boardId, listId, cardId, updateData);
       return response.data?.card || response.data;
     },
-    onMutate: async ({ boardId, listId, cardId, updates }) => {
+    onMutate: async ({ boardId, listId, cardId, updates, cardData }) => {
+      // Support both parameter names
+      const updateData = updates || cardData;
+      
       // Optimistic update
       await queryClient.cancelQueries({ queryKey: queryKeys.listCards(listId) });
       await queryClient.cancelQueries({ queryKey: queryKeys.card(cardId) });
@@ -167,13 +172,13 @@ export const useUpdateCard = () => {
       // Update in list cards
       queryClient.setQueryData(queryKeys.listCards(listId), (old) => {
         return (old || []).map(card => 
-          card.id === cardId ? { ...card, ...updates } : card
+          card.id === cardId ? { ...card, ...updateData } : card
         );
       });
       
       // Update individual card
       queryClient.setQueryData(queryKeys.card(cardId), (old) => {
-        return old ? { ...old, ...updates } : null;
+        return old ? { ...old, ...updateData } : null;
       });
       
       return { previousCards, previousCard };
