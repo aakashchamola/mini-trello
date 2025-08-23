@@ -1,6 +1,31 @@
 # Mini Trello - Kanban Board Application
 
-A simplified Trello-like kanban board application built with React.js frontend and Node.js/Express backend with real-time collaboration features.
+A modern, collaborative Kanban board application inspired by Trello, built with React.js frontend and Node.js/Express backend featuring real-time collaboration, drag-and-drop functionality, and comprehensive project management tools.
+
+## 🏗️ Tech Stack & Rationale
+
+### Frontend
+- **React.js (v18)** with functional components and hooks for modern UI development
+- **React Query (TanStack Query)** for efficient server state management and caching
+- **React Beautiful DnD** for smooth, accessible drag-and-drop interactions
+- **Socket.IO Client** for real-time collaboration features
+- **React Router (v6)** for seamless client-side navigation
+- **CSS Modules & Tailwind CSS** for maintainable, responsive styling
+
+### Backend
+- **Node.js with Express.js** for robust API development and middleware support
+- **Socket.IO** for real-time bidirectional communication
+- **SQLite with Sequelize ORM** for lightweight database management with powerful query capabilities
+- **JSON Web Tokens (JWT)** for secure authentication and authorization
+- **bcrypt** for password hashing and security
+- **Swagger/OpenAPI** for comprehensive API documentation
+
+### Development Tools
+- **ESLint & Prettier** for code quality and consistency
+- **Docker & Docker Compose** for containerized development environment
+- **Jest & React Testing Library** for comprehensive testing
+
+The tech stack prioritizes developer experience, performance, and scalability while maintaining simplicity for rapid development and deployment.
 
 ## 🚀 Quick Setup Guide
 
@@ -21,12 +46,34 @@ cd backend
 npm install
 ```
 
-Create a `.env` file in the backend directory:
-```
-// just copy the .env.example to .env in the backend directory i haven given all the keys and secret keys there itself 
+**Quick Setup (Recommended):**
+```bash
+npm run setup    # Installs dependencies and initializes database and will start backend server
 ```
 
-Start the backend server:
+**Manual Setup:**
+Create a `.env` file in the backend directory by copying from `.env.example`:
+```bash
+cp .env.example .env
+```
+
+**Environment Variables Setup:**
+The `.env.example` file contains all necessary environment variables with sample values. Key configurations include:
+- `JWT_SECRET` and `JWT_REFRESH_SECRET` - Change these to secure random strings (minimum 32 characters)
+- `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` - For Google OAuth (optional)
+- `PORT` - Backend server port (default: 3001)
+- `USE_MYSQL` - Set to false for SQLite, true for MySQL
+
+**Database Setup:**
+```bash
+# Option 1: Use the initialization script (recommended)
+npm run db:init              # Creates database with schema and sample data
+
+# Option 2: Use the database switch utility migrates data from mysql to sqlite and vice versa
+node db-switch.js sqlite     # Ensures proper SQLite setup
+node db-switch.js mysql      # Ensures proper MySQL setup
+
+**Start the Backend Server:**
 ```bash
 npm start
 ```
@@ -46,8 +93,94 @@ The frontend will be available at `http://localhost:3000`
 
 ### 4. Access the Application
 1. Open `http://localhost:3000` in your browser
-2. Register a new account or login/sign up using google option
+2. Register a new account or login using Google OAuth
 3. Create your first board and start organizing tasks!
+
+### 5. Sample User Accounts (for testing)
+The seed data includes pre-created users for testing:
+- **Email**: `john.doe@example.com` | **Password**: `Password123!`
+- **Email**: `jane.smith@example.com` | **Password**: `Password123!`
+- **Email**: `alice.johnson@example.com` | **Password**: `Password123!`
+
+All sample users have access to various pre-created boards with different collaboration scenarios.
+
+---
+
+## 📁 Project Structure
+
+### Backend Structure
+```
+backend/
+├── src/
+│   ├── config/
+│   │   ├── database.js          # Database configuration
+│   │   └── swagger.js           # API documentation setup
+│   ├── controllers/             # Request handlers
+│   │   ├── authController.js    # Authentication endpoints
+│   │   ├── boardController.js   # Board management
+│   │   ├── cardController.js    # Card operations
+│   │   ├── listController.js    # List management
+│   │   └── commentController.js # Comment system
+│   ├── middleware/              # Express middleware
+│   │   ├── auth.js             # JWT authentication
+│   │   ├── boardPermissions.js # Role-based access control
+│   │   └── activityLogger.js   # Activity tracking
+│   ├── models/                 # Database models
+│   │   ├── User.js             # User authentication
+│   │   ├── Board.js            # Board entity
+│   │   ├── BoardMember.js      # Collaboration relationships
+│   │   ├── List.js             # Kanban lists
+│   │   ├── Card.js             # Task cards
+│   │   ├── Comment.js          # Comment system
+│   │   └── Activity.js         # Activity logging
+│   ├── routes/                 # API route definitions
+│   ├── services/               # Business logic
+│   ├── socket/                 # Real-time functionality
+│   │   ├── socketHandler.js    # Main socket management
+│   │   ├── boardEvents.js      # Board-specific events
+│   │   └── realTimeMiddleware.js # Event emission
+│   ├── validation/             # Request validation schemas
+│   └── utils/                  # Helper functions
+├── database.sqlite             # Local SQLite database
+└── server.js                   # Main application entry point
+```
+
+### Frontend Structure
+```
+frontend/
+├── src/
+│   ├── components/
+│   │   ├── auth/               # Login/Register forms
+│   │   ├── board/              # Board-related components
+│   │   │   ├── BoardHeader.js  # Board title and controls
+│   │   │   ├── BoardListNew.js # Kanban list component
+│   │   │   ├── CardItem.js     # Card display
+│   │   │   ├── CardModal.js    # Card editing modal
+│   │   │   ├── BoardMemberManager.js # Member management
+│   │   │   ├── ActivitySidebar.js # Activity feed
+│   │   │   └── PresenceAvatars.js # Online users
+│   │   ├── common/             # Reusable components
+│   │   ├── forms/              # Form components
+│   │   └── layout/             # Layout components
+│   ├── contexts/               # React context providers
+│   │   ├── AuthContext.js      # User authentication state
+│   │   ├── AppContext.js       # Global application state
+│   │   └── UIContext.js        # UI state management
+│   ├── hooks/                  # Custom React hooks
+│   │   ├── useBoards.js        # Board API operations
+│   │   ├── useCards.js         # Card API operations
+│   │   ├── useLists.js         # List API operations
+│   │   └── useDragDrop.js      # Drag and drop functionality
+│   ├── pages/                  # Route components
+│   │   ├── BoardPage.js        # Main board interface
+│   │   ├── DashboardPage.js    # Board listing
+│   │   └── SettingsPage.js     # User settings
+│   ├── services/               # External service integrations
+│   │   ├── api.js              # HTTP client
+│   │   └── socket.js           # WebSocket client
+│   └── utils/                  # Helper functions
+└── public/                     # Static assets
+```
 
 ---
 
@@ -234,29 +367,115 @@ The frontend will be available at `http://localhost:3000`
 
 ---
 
-## 🗄️ Database Schema
+## 🗄️ Database Schema Overview
 
-The application uses SQLite with the following core tables:
+The application uses SQLite by default (with MySQL support) and follows a normalized relational design:
 
-### Users
-- User authentication and profile information
-- Fields: id, email, username, password, avatar_url, timestamps
+### Core Tables
 
-### Boards  
-- Board information and ownership
-- Fields: id, title, description, owner_id, color, is_starred, timestamps
+#### Users Table
+```sql
+users (
+  id INTEGER PRIMARY KEY,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  username VARCHAR(100) UNIQUE NOT NULL,
+  password VARCHAR(255) NOT NULL,        -- bcrypt hashed
+  avatar_url VARCHAR(500),
+  email_verified BOOLEAN DEFAULT 0,
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP
+)
+```
 
-### BoardMembers
-- User permissions on boards
-- Fields: id, board_id, user_id, role (admin/editor/viewer), joined_at
+#### Boards Table
+```sql
+boards (
+  id INTEGER PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  owner_id INTEGER REFERENCES users(id),
+  color VARCHAR(255) DEFAULT '#0079bf',
+  is_starred BOOLEAN DEFAULT 0,
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP
+)
+```
 
-### Lists
-- Organization containers within boards
-- Fields: id, title, board_id, position, timestamps
+#### Board Members Table (Collaboration)
+```sql
+board_members (
+  id INTEGER PRIMARY KEY,
+  board_id INTEGER REFERENCES boards(id),
+  user_id INTEGER REFERENCES users(id),
+  role VARCHAR(20) CHECK (role IN ('admin', 'editor', 'viewer')),
+  joined_at TIMESTAMP,
+  UNIQUE(board_id, user_id)
+)
+```
 
-### Cards
-- Task items with rich content
-- Fields: id, title, description, list_id, position, due_date, is_completed, timestamps
+#### Lists Table (Kanban Columns)
+```sql
+lists (
+  id INTEGER PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  board_id INTEGER REFERENCES boards(id),
+  position INTEGER DEFAULT 0,           -- For ordering
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP
+)
+```
+
+#### Cards Table (Tasks)
+```sql
+cards (
+  id INTEGER PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  list_id INTEGER REFERENCES lists(id),
+  position INTEGER DEFAULT 0,           -- For ordering within list
+  due_date TIMESTAMP NULL,
+  is_completed BOOLEAN DEFAULT 0,
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP
+)
+```
+
+#### Comments Table
+```sql
+comments (
+  id INTEGER PRIMARY KEY,
+  content TEXT NOT NULL,
+  card_id INTEGER REFERENCES cards(id),
+  author_id INTEGER REFERENCES users(id),
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP
+)
+```
+
+#### Activities Table (Audit Trail)
+```sql
+activities (
+  id INTEGER PRIMARY KEY,
+  board_id INTEGER REFERENCES boards(id),
+  user_id INTEGER REFERENCES users(id),
+  action_type VARCHAR(100) NOT NULL,    -- 'created', 'updated', 'moved', etc.
+  entity_type VARCHAR(50) NOT NULL,     -- 'board', 'list', 'card', 'comment'
+  entity_id INTEGER,
+  old_value TEXT,                       -- JSON string of old values
+  new_value TEXT,                       -- JSON string of new values
+  description TEXT NOT NULL,
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP
+)
+```
+
+### Key Relationships
+- **One-to-Many**: User → Boards (ownership)
+- **Many-to-Many**: Users ↔ Boards (collaboration via board_members)
+- **One-to-Many**: Board → Lists → Cards
+- **One-to-Many**: Cards → Comments
+- **One-to-Many**: Board → Activities (audit trail)
+
 
 ### Comments
 - User comments on cards
@@ -310,27 +529,78 @@ The application uses SQLite with the following core tables:
 
 ---
 
-## 🔄 Real-time Events
+## 🔄 Real-time Collaboration
 
-The application uses WebSocket (Socket.IO) for real-time collaboration:
+The application uses **Socket.IO** for real-time collaboration, enabling multiple users to work on the same board simultaneously.
 
-### Board Events
-- `board:updated` - Board details changed
-- `board:deleted` - Board was deleted
+### Real-time Features
+- **Live Card Movements**: See cards move as other users drag them
+- **Instant Updates**: Board changes appear immediately for all users
+- **Activity Feed**: Real-time activity notifications
+- **Member Presence**: See who's currently viewing the board
+- **Comment Notifications**: Instant comment updates
+- **Visual Feedback**: See what other users are currently dragging
 
-### List Events
-- `list:created` - New list added
-- `list:updated` - List details changed
-- `list:deleted` - List was removed
+### How to Start Real-time Server
+The real-time server is integrated with the main backend server - no separate setup required.
 
-### Card Events
-- `card:created` - New card added
-- `card:updated` - Card details changed
-- `card:moved` - Card moved between lists
-- `card:deleted` - Card was removed
+**Backend Integration:**
+```javascript
+// Socket.IO is automatically initialized with the Express server
+const server = require('http').createServer(app);
+const io = require('socket.io')(server, {
+  cors: { origin: process.env.FRONTEND_URL }
+});
 
-### Comment Events
-- `comment:created` - New comment added
+// Real-time events are handled in src/socket/
+server.listen(3001);
+```
+
+**Frontend Connection:**
+```javascript
+// Automatic connection when user logs in
+import socketService from './services/socket';
+
+// Connect and join board room
+socketService.connect();
+socketService.joinBoard(boardId);
+```
+
+### Supported Real-time Events
+
+#### Board Events
+- `board:updated` - Board details changed by another user
+- `board:deleted` - Board was deleted by owner
+
+#### List Events  
+- `list:created` - New list added to board
+- `list:updated` - List title or details changed
+- `list:moved` - List reordered by drag-and-drop
+- `list:deleted` - List removed from board
+
+#### Card Events
+- `card:created` - New card added to list
+- `card:updated` - Card title, description, or status changed
+- `card:moved` - Card moved between lists or positions
+- `card:deleted` - Card removed from board
+
+#### Comment Events
+- `comment:created` - New comment added to card
+- `comment:updated` - Comment text modified
+- `comment:deleted` - Comment removed
+
+#### Collaboration Events
+- `user:joined` - User joined the board
+- `user:left` - User left the board
+- `drag-start` - User started dragging an item
+- `drag-end` - User finished dragging an item
+
+### Example Real-time Usage
+When User A moves a card, User B immediately sees:
+1. **Visual Feedback**: Card being dragged (with user indicator)
+2. **Live Movement**: Card position updates in real-time
+3. **Activity Update**: "User A moved Card X from List Y to List Z"
+4. **Optimistic UI**: Changes appear instantly, then sync with server
 
 ---
 
@@ -378,55 +648,57 @@ mini-trello/
 
 ---
 
-## 🔒 Security Features
+## � Documentation
 
-- **JWT Authentication**: Secure token-based authentication
-- **Password Hashing**: bcrypt for secure password storage
-- **Input Validation**: Joi schemas prevent malicious input
-- **CORS Protection**: Configured for specific frontend domain
-- **Helmet Security**: Security headers for production
-- **Permission Middleware**: Role-based access control
-- **SQL Injection Prevention**: Sequelize ORM parameterized queries
+### Design Documents
+- **[High-Level Design (HLD)](./docs/HLD.md)** - System architecture, component design, and technology decisions
+- **[Low-Level Design (LLD)](./docs/LLD.md)** - Detailed implementation, API specifications, and database design
+- **[API Reference](./docs/API-Reference.md)** - Complete REST API documentation with examples
+
+### API Resources
+- **Swagger Documentation**: `http://localhost:3001/api-docs` (when backend is running)
+
+### Database Resources
+- **Schema**: See `database/01-schema.sql` for complete table definitions
+- **ERD Diagram**: See `docs/ERD_diagram.png` for visual schema representation
 
 ---
 
-## 🚀 Deployment
+## �🔒 Security Features
 
-### Environment Variables
-Make sure to set these environment variables in production:
+- **JWT Authentication**: Secure token-based authentication with refresh tokens
+- **Password Hashing**: bcrypt with configurable salt rounds for secure password storage
+- **Input Validation**: Joi schemas prevent malicious input and ensure data integrity
+- **CORS Protection**: Configured for specific frontend domain to prevent unauthorized access
+- **Helmet Security**: Comprehensive security headers for production environments
+- **Permission Middleware**: Role-based access control (Admin/Editor/Viewer)
+- **SQL Injection Prevention**: Sequelize ORM with parameterized queries
+- **Rate Limiting**: Protection against brute force attacks and API abuse
+- **XSS Protection**: Input sanitization and proper content security policies
 
-```env
-NODE_ENV=production
-PORT=3001
-JWT_SECRET=your-production-jwt-secret
-JWT_REFRESH_SECRET=your-production-refresh-secret
-DATABASE_URL=your-production-database-url
-FRONTEND_URL=https://your-frontend-domain.com
-```
+---
 
-### Production Build
+
+### Docker Deployment
 ```bash
-# Backend
-cd backend
-npm install --production
-npm start
+# Build and run with Docker Compose
+docker-compose up --build
 
-# Frontend
-cd frontend
-npm run build
-# Serve the build folder with your web server
+# Production mode
+docker-compose -f docker-compose.prod.yml up -d
 ```
 
----
+```
+## Changelog
 
-## 📞 Support
-
-For issues and questions:
-- Email: aakashchamolababa@gmail.com
-- Create an issue on GitHub
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License.
+### v1.0.0 (Current)
+- ✅ Complete authentication system with JWT and Google OAuth integration
+- ✅ Full board, list, and card management with CRUD operations
+- ✅ Real-time collaboration using Socket.IO with room-based events
+- ✅ Comment system with real-time updates and notifications
+- ✅ Role-based access control (Admin/Editor/Viewer permissions)
+- ✅ Comprehensive activity tracking and audit trails
+- ✅ Intuitive drag and drop interface with visual feedback
+- ✅ Responsive design optimized for mobile and desktop
+- ✅ Complete API documentation with Swagger and Postman collection
+- ✅ Docker support for containerized deployment
