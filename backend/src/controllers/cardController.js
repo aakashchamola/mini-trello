@@ -2,8 +2,10 @@ const Card = require('../models/Card');
 const List = require('../models/List');
 const Board = require('../models/Board');
 const User = require('../models/User');
+const Comment = require('../models/Comment');
 const { createCardSchema, updateCardSchema, moveCardSchema, reorderCardsSchema } = require('../validation/cardValidation');
 const { Op } = require('sequelize');
+const { sequelize } = require('../config/database');
 const positionService = require('../services/positionService');
 
 const cardController = {
@@ -193,7 +195,21 @@ const cardController = {
       const cards = await Card.findAll({
         where: whereClause,
         order: [['position', 'ASC']],
-        attributes: ['id', 'title', 'description', 'position', 'priority', 'dueDate', 'isCompleted', 'labels', 'listId', 'createdBy', 'createdAt', 'updatedAt']
+        attributes: ['id', 'title', 'description', 'position', 'priority', 'dueDate', 'isCompleted', 'labels', 'listId', 'createdBy', 'createdAt', 'updatedAt'],
+        include: [
+          {
+            model: Comment,
+            as: 'comments',
+            attributes: [],
+            required: false
+          }
+        ],
+        group: ['Card.id'],
+        attributes: {
+          include: [
+            [sequelize.fn('COUNT', sequelize.col('comments.id')), 'commentCount']
+          ]
+        }
       });
 
       res.json({
@@ -245,13 +261,26 @@ const cardController = {
 
       const cards = await Card.findAll({
         where: whereClause,
-        include: [{
-          model: List,
-          as: 'list',
-          attributes: ['id', 'title']
-        }],
+        include: [
+          {
+            model: List,
+            as: 'list',
+            attributes: ['id', 'title']
+          },
+          {
+            model: Comment,
+            as: 'comments',
+            attributes: [],
+            required: false
+          }
+        ],
         order: [['listId', 'ASC'], ['position', 'ASC']],
-        attributes: ['id', 'title', 'description', 'position', 'priority', 'dueDate', 'isCompleted', 'labels', 'listId', 'createdBy', 'createdAt', 'updatedAt']
+        attributes: {
+          include: [
+            [sequelize.fn('COUNT', sequelize.col('comments.id')), 'commentCount']
+          ]
+        },
+        group: ['Card.id', 'list.id']
       });
 
       res.json({

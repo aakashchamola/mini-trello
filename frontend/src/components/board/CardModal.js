@@ -33,14 +33,15 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
 
   const fetchComments = async () => {
     try {
-      const response = await commentAPI.getByCard(boardId, listId, card.id);
-      const commentsData = response.data.data || response.data || [];
-      // Ensure we have an array and filter out invalid entries
+      const response = await commentAPI.getByCard(card.boardId, card.listId, card.id);
+      // Backend returns {comments: [...], cardId: ..., totalComments: ...}
+      const commentsData = response.data.comments || [];
+      
       const validComments = Array.isArray(commentsData) ? commentsData.filter(c => c && c.id) : [];
       setComments(validComments);
     } catch (error) {
       console.error('Error fetching comments:', error);
-      // Set empty array on error to prevent crashes
+      // Don't show error to user for comments - just show empty state
       setComments([]);
     }
   };
@@ -144,14 +145,20 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
         content: newComment.trim()
       });
 
-      const newCommentData = response.data.data || response.data;
+      console.log('Raw API response:', response.data);
+      
+      // Extract comment from response - backend returns {comment: {...}, message: '...'}
+      const newCommentData = response.data.comment || response.data.data || response.data;
+      
+      console.log('Extracted comment data:', newCommentData);
+      
       // Ensure the new comment has valid structure
       if (newCommentData && newCommentData.id) {
         setComments(prev => [...prev, newCommentData]);
         setNewComment('');
         toast.success('Comment added');
       } else {
-        console.error('Invalid comment data received:', newCommentData);
+        console.error('Invalid comment data received:', response.data);
         toast.error('Comment added but may not display correctly');
       }
     } catch (error) {
@@ -272,7 +279,7 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
                       <div key={comment.id} className="comment-item">
                         <div className="comment-header">
                           <span className="comment-author">
-                            {comment.author?.name || comment.authorName || 'Unknown User'}
+                            {comment.author?.username || comment.authorName || 'Unknown User'}
                           </span>
                           <span className="comment-date">
                             {formatDate(comment.createdAt)}

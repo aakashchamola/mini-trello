@@ -27,6 +27,7 @@ import BoardHeader from '../components/board/BoardHeader';
 import BoardListNew from '../components/board/BoardListNew';
 import CardModal from '../components/board/CardModal';
 import AddListForm from '../components/forms/AddListForm';
+import BoardMembers from '../components/board/BoardMembers';
 import '../components/board/BoardEnhancements.css';
 import './BoardPage.css';
 
@@ -666,19 +667,49 @@ const BoardPageNew = () => {
           <div className="activity-list">
             {activitiesLoading ? (
               <LoadingSpinner size="small" />
-            ) : (
+            ) : activities.length > 0 ? (
               activities.map(activity => (
                 <div key={activity.id} className="activity-item">
+                  <div className="activity-avatar">
+                    {activity.user?.name?.charAt(0) || 'U'}
+                  </div>
                   <div className="activity-content">
-                    <p>{activity.description}</p>
-                    <span className="activity-time">{activity.created_at}</span>
+                    <div className="activity-description">
+                      <strong>{activity.user?.name || 'Unknown User'}</strong>
+                      <span className="activity-action">{activity.description}</span>
+                    </div>
+                    <span className="activity-time">
+                      {new Date(activity.created_at).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
                   </div>
                 </div>
               ))
+            ) : (
+              <div className="no-activities">
+                <p>No recent activity</p>
+                <p>Activity will appear here as you work on this board</p>
+              </div>
             )}
           </div>
         </div>
       )}
+
+      {/* Members Sidebar */}
+      <div className="members-sidebar">
+        <BoardMembers
+          boardId={boardId}
+          members={boardMembers}
+          onMembersUpdate={(newMembers) => {
+            // Invalidate board members query to refresh the data
+            queryClient.invalidateQueries({ queryKey: ['boards', boardId, 'members'] });
+          }}
+        />
+      </div>
 
       {/* Card Modal */}
       {selectedCard && (
