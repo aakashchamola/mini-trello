@@ -40,6 +40,7 @@ const BoardPageNew = () => {
     closeModal, 
     boardSettings,
     setCardFilters,
+    toggleActivities,
     dragState,
     startDrag,
     updateDrag,
@@ -559,10 +560,7 @@ const BoardPageNew = () => {
       <BoardHeader
         board={boardData}
         members={boardMembers}
-        onToggleActivity={() => {
-          // Toggle activity sidebar using UI context
-          // This would be handled by the UI context
-        }}
+        onToggleActivity={toggleActivities}
         onSearch={handleSearch}
         onFilter={handleFilter}
         onOpenMemberModal={handleOpenMemberModal}
@@ -668,10 +666,7 @@ const BoardPageNew = () => {
             </h3>
             <button
               className="close-activity"
-              onClick={() => {
-                // Close activity sidebar using UI context
-                // This would be handled by the UI context
-              }}
+              onClick={toggleActivities}
             >
               ×
             </button>

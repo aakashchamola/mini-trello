@@ -297,7 +297,7 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
           </div>
 
           <div className="card-sidebar">
-            <div className="card-actions">
+            {/* <div className="card-actions">
               <h4>Actions</h4>
               <button className="action-btn">
                 <FiUser />
@@ -307,7 +307,7 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
                 <FiCalendar />
                 Set Due Date
               </button>
-            </div>
+            </div> */}
 
             <div className="card-info">
               <h4>Card Info</h4>

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FiSearch, FiUsers } from "react-icons/fi";
+import { FiSearch, FiUsers, FiActivity } from "react-icons/fi";
 import "./BoardHeader.css";
 
 const BoardHeader = ({
@@ -56,9 +56,14 @@ const BoardHeader = ({
           Members ({members?.length || 0})
         </button>
 
-        {/* <button className="activity-btn" onClick={onToggleActivity}>
+        <button 
+          className="activity-btn" 
+          onClick={onToggleActivity}
+          title="Toggle activity sidebar"
+        >
+          <FiActivity />
           Activity
-        </button> */}
+        </button>
       </div>
     </div>
   );
