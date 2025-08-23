@@ -23,6 +23,11 @@ const inviteMemberSchema = Joi.object({
     .default('viewer')
     .messages({
       'any.only': 'Role must be one of: admin, editor, viewer'
+    }),
+  directAdd: Joi.boolean()
+    .default(false)
+    .messages({
+      'boolean.base': 'directAdd must be a boolean value'
     })
 }).or('email', 'username').messages({
   'object.missing': 'Either email or username must be provided'

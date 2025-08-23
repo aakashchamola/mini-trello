@@ -1,8 +1,6 @@
 import React, { useState } from "react";
-import { FiSearch, FiFilter } from "react-icons/fi";
-import Avatar from "react-avatar";
+import { FiSearch, FiUsers } from "react-icons/fi";
 import "./BoardHeader.css";
-import BoardMembers from "./BoardMembers";
 
 const BoardHeader = ({
   board,
@@ -10,9 +8,9 @@ const BoardHeader = ({
   onToggleActivity,
   onSearch,
   onFilter,
+  onOpenMemberModal,
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
 
   const handleSearchChange = (e) => {
     const query = e.target.value;
@@ -49,9 +47,14 @@ const BoardHeader = ({
           Filters
         </button> */}
 
-        <div>
-          <BoardMembers boardId={board.id} members={members} />
-        </div>
+        <button
+          className="members-btn"
+          onClick={onOpenMemberModal}
+          title="Manage members"
+        >
+          <FiUsers />
+          Members ({members?.length || 0})
+        </button>
 
         {/* <button className="activity-btn" onClick={onToggleActivity}>
           Activity

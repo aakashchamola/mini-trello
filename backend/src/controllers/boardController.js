@@ -20,6 +20,15 @@ const boardController = {
         userId: req.user.id
       });
 
+      // Automatically add the creator as an admin member
+      await BoardMember.create({
+        boardId: board.id,
+        userId: req.user.id,
+        role: 'admin',
+        status: 'accepted',
+        invitedBy: req.user.id
+      });
+
       res.status(201).json({
         message: 'Board created successfully',
         board: {

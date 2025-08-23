@@ -111,6 +111,8 @@ export const boardAPI = {
   invite: (boardId, data) => api.post(`/boards/${boardId}/invite`, data),
   getMembers: (boardId, params = {}) => api.get(`/boards/${boardId}/members`, { params }),
   getBoardMembers: (boardId, params = {}) => api.get(`/boards/${boardId}/members`, { params }),
+  removeMember: (boardId, memberId) => api.delete(`/boards/${boardId}/members/${memberId}`),
+  updateMemberRole: (boardId, memberId, data) => api.put(`/boards/${boardId}/members/${memberId}`, data),
   getActivities: (boardId, params = {}) => api.get(`/boards/${boardId}/activities`, { params }),
   getBoardActivities: (boardId, params = {}) => api.get(`/boards/${boardId}/activities`, { params }),
   getPresence: (boardId) => api.get(`/boards/${boardId}/presence`)

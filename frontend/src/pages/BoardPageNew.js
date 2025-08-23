@@ -20,14 +20,13 @@ import {
   useDeleteCard,
   useMoveCard
 } from '../hooks';
-import { calculateNewPosition, calculateReorderPositions } from '../utils/positionUtils';
 import socketService from '../services/socket';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import BoardHeader from '../components/board/BoardHeader';
 import BoardListNew from '../components/board/BoardListNew';
 import CardModal from '../components/board/CardModal';
 import AddListForm from '../components/forms/AddListForm';
-import BoardMembers from '../components/board/BoardMembers';
+import BoardMemberManager from '../components/board/BoardMemberManager';
 import '../components/board/BoardEnhancements.css';
 import './BoardPage.css';
 
@@ -50,6 +49,7 @@ const BoardPageNew = () => {
   // Local UI state
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddList, setShowAddList] = useState(false);
+  const [showMemberModal, setShowMemberModal] = useState(false);
 
   // React Query hooks
   const { 
@@ -70,8 +70,6 @@ const BoardPageNew = () => {
 
   // Mutations
   const createListMutation = useCreateList();
-  const updateListMutation = useUpdateList();
-  const deleteListMutation = useDeleteList();
   const reorderListsMutation = useReorderLists();
   
   const createCardMutation = useCreateCard();
@@ -513,6 +511,19 @@ const BoardPageNew = () => {
     setCardFilters(filters);
   };
 
+  const handleOpenMemberModal = () => {
+    setShowMemberModal(true);
+  };
+
+  const handleCloseMemberModal = () => {
+    setShowMemberModal(false);
+  };
+
+  const handleMembersUpdate = () => {
+    // Refresh the board members data
+    queryClient.invalidateQueries({ queryKey: ['boards', boardId, 'members'] });
+  };
+
   // Loading state
   if (boardLoading) {
     return <LoadingSpinner size="large" message="Loading board..." />;
@@ -554,6 +565,7 @@ const BoardPageNew = () => {
         }}
         onSearch={handleSearch}
         onFilter={handleFilter}
+        onOpenMemberModal={handleOpenMemberModal}
         isLoading={membersLoading}
       />
 
@@ -710,6 +722,30 @@ const BoardPageNew = () => {
           members={boardMembers}
           isLoading={updateCardMutation.isLoading}
         />
+      )}
+
+      {/* Member Management Modal */}
+      {showMemberModal && (
+        <div className="modal-overlay" onClick={handleCloseMemberModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Manage Board Members</h2>
+              <button 
+                className="modal-close-btn"
+                onClick={handleCloseMemberModal}
+              >
+                ×
+              </button>
+            </div>
+            <BoardMemberManager
+              boardId={boardId}
+              members={boardMembers}
+              onMembersUpdate={handleMembersUpdate}
+              currentUser={JSON.parse(localStorage.getItem('user'))} // Get current user from localStorage
+              boardOwner={boardData?.owner || boardData?.userId}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

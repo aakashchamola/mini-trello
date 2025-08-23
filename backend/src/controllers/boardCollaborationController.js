@@ -101,17 +101,20 @@ const boardCollaborationController = {
         });
       }
 
-      // Create invitation
+      // Create invitation or direct member addition
+      const status = value.directAdd ? 'accepted' : 'pending';
       const invitation = await BoardMember.create({
         boardId,
         userId: userToInvite.id,
         role: value.role || 'viewer',
         invitedBy: req.user.id,
-        status: 'pending'
+        status: status
       });
 
+      const message = value.directAdd ? 'User added to board successfully' : 'User invited successfully';
+
       res.status(201).json({
-        message: 'User invited successfully',
+        message: message,
         invitation: {
           id: invitation.id,
           boardId: invitation.boardId,
@@ -254,28 +257,48 @@ const boardCollaborationController = {
         order: [['joinedAt', 'ASC']]
       });
 
-      // Include board owner
-      const owner = await User.findByPk(board.userId, {
-        attributes: ['id', 'username', 'email', 'avatar_url']
-      });
-
-      const allMembers = [
-        {
-          id: 'owner',
-          user: owner,
-          role: 'owner',
-          joinedAt: board.createdAt,
-          isOwner: true
-        },
-        ...members.map(member => ({
+      // Check if owner has a BoardMember entry
+      const ownerMemberEntry = members.find(member => member.userId === board.userId);
+      
+      let allMembers = [];
+      
+      if (ownerMemberEntry) {
+        // Owner has a BoardMember entry, use that
+        allMembers = members.map(member => ({
           id: member.id,
+          userId: member.userId,
           user: member.user,
           role: member.role,
           joinedAt: member.joinedAt,
           invitedBy: member.inviter,
-          isOwner: false
-        }))
-      ];
+          isOwner: member.userId === board.userId
+        }));
+      } else {
+        // Owner doesn't have a BoardMember entry, add them as owner
+        const owner = await User.findByPk(board.userId, {
+          attributes: ['id', 'username', 'email', 'avatar_url']
+        });
+
+        allMembers = [
+          {
+            id: 'owner',
+            userId: board.userId,
+            user: owner,
+            role: 'admin', // Changed from 'owner' to 'admin'
+            joinedAt: board.createdAt,
+            isOwner: true
+          },
+          ...members.map(member => ({
+            id: member.id,
+            userId: member.userId,
+            user: member.user,
+            role: member.role,
+            joinedAt: member.joinedAt,
+            invitedBy: member.inviter,
+            isOwner: false
+          }))
+        ];
+      }
 
       res.json({
         boardId: parseInt(boardId),
