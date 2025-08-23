@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { FiStar, FiUsers, FiClock, FiMoreHorizontal } from 'react-icons/fi';
+import { FiStar, FiUsers, FiClock } from 'react-icons/fi';
 import Avatar from 'react-avatar';
 import dayjs from 'dayjs';
 import './BoardCard.css';

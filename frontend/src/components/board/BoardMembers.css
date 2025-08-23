@@ -1,16 +1,55 @@
-.board-members {
-  background: white;
+/* Invite Modal Styles */
+.invite-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.invite-modal {
+  background: #fff;
   border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  margin: 20px 0;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  padding: 32px 24px 24px 24px;
+  min-width: 320px;
+  max-width: 35vw;
+  width: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.invite-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+}
+
+.invite-modal-title {
+  margin-bottom: 18px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #2c3e50;
+  text-align: center;
+}
+.board-members {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
 }
 
 .members-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
 }
 
 .members-header h3 {
@@ -35,6 +74,7 @@
   color: white;
   cursor: pointer;
   transition: all 0.2s ease;
+  margin-left: 10px;
 }
 
 .invite-btn:hover {

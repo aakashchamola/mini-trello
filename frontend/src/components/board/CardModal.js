@@ -33,7 +33,7 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
 
   const fetchComments = async () => {
     try {
-      const response = await commentAPI.getByCard(card.boardId, card.listId, card.id);
+      const response = await commentAPI.getByCard(boardId, listId, card.id);
       // Backend returns {comments: [...], cardId: ..., totalComments: ...}
       const commentsData = response.data.comments || [];
       
@@ -123,6 +123,9 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
         console.log('Calling onCardUpdated with cardId:', card.id, 'listId:', listId, 'updates:', updateData);
         onCardUpdated(card.id, listId, updateData);
       }
+
+      // Close the modal
+      onClose();
     } catch (error) {
       console.error('Error updating card:', error);
       // Error is already handled by the hook with toast
@@ -194,7 +197,7 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
                 />
                 <div className="edit-actions">
                   <button 
-                    className="save-btn" 
+                    className="save-btn-1" 
                     onClick={handleSave}
                     disabled={loading}
                   >

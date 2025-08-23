@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Droppable, Draggable } from 'react-beautiful-dnd';
 import { FiPlus, FiMoreHorizontal, FiEdit2, FiTrash2, FiCheck, FiX, FiMove } from 'react-icons/fi';
 import CardItem from './CardItem';
@@ -23,6 +23,26 @@ const BoardListNew = ({
 }) => {
   const [showAddCard, setShowAddCard] = useState(false);
   const [showListMenu, setShowListMenu] = useState(false);
+  const listMenuRef = useRef(null);
+  const listMenuBtnRef = useRef(null);
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (
+        showListMenu &&
+        listMenuRef.current &&
+        !listMenuRef.current.contains(event.target) &&
+        listMenuBtnRef.current &&
+        !listMenuBtnRef.current.contains(event.target)
+      ) {
+        setShowListMenu(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showListMenu]);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitle, setEditTitle] = useState(list.title);
   const updateInProgress = useRef(false); // Prevent duplicate updates
@@ -176,11 +196,12 @@ const BoardListNew = ({
                   className="list-menu-btn"
                   onClick={() => setShowListMenu(!showListMenu)}
                   disabled={isUpdating}
+                  ref={listMenuBtnRef}
                 >
                   <FiMoreHorizontal />
                 </button>
                 {showListMenu && (
-                  <div className="list-menu">
+                  <div className="list-menu" ref={listMenuRef}>
                     <button 
                       onClick={() => {
                         setIsEditingTitle(true);

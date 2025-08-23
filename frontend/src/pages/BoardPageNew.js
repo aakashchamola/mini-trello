@@ -699,18 +699,6 @@ const BoardPageNew = () => {
         </div>
       )}
 
-      {/* Members Sidebar */}
-      <div className="members-sidebar">
-        <BoardMembers
-          boardId={boardId}
-          members={boardMembers}
-          onMembersUpdate={(newMembers) => {
-            // Invalidate board members query to refresh the data
-            queryClient.invalidateQueries({ queryKey: ['boards', boardId, 'members'] });
-          }}
-        />
-      </div>
-
       {/* Card Modal */}
       {selectedCard && (
         <CardModal

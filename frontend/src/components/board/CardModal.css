@@ -324,7 +324,16 @@
   margin-top: 8px;
 }
 
-.edit-actions .save-btn,
+.edit-actions .save-btn-1{
+  background: #0079bf;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
 .edit-actions .cancel-btn {
   padding: 6px 12px;
   border-radius: 4px;
@@ -341,8 +350,8 @@
   color: white;
 }
 
-.edit-actions .save-btn:hover:not(:disabled) {
-  background: #005a8b;
+.edit-actions .save-btn-1:hover:not(:disabled) {
+  opacity: 0.8;
 }
 
 .edit-actions .cancel-btn {
@@ -355,7 +364,7 @@
   background: #e4e6ea;
 }
 
-.edit-actions .save-btn:disabled,
+.edit-actions .save-btn-1:disabled,
 .edit-actions .cancel-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { FiClock, FiMessageCircle, FiPaperclip, FiUser, FiMoreHorizontal, FiEdit2, FiTrash2 } from 'react-icons/fi';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -9,6 +9,26 @@ dayjs.extend(relativeTime);
 
 const CardItem = ({ card, onClick, onUpdated, onDeleted, boardId, listId }) => {
   const [showCardMenu, setShowCardMenu] = useState(false);
+  const cardMenuRef = useRef(null);
+  const cardMenuBtnRef = useRef(null);
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (
+        showCardMenu &&
+        cardMenuRef.current &&
+        !cardMenuRef.current.contains(event.target) &&
+        cardMenuBtnRef.current &&
+        !cardMenuBtnRef.current.contains(event.target)
+      ) {
+        setShowCardMenu(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showCardMenu]);
   const deleteCardMutation = useDeleteCard();
 
   const handleMenuClick = (e) => {
@@ -62,11 +82,12 @@ const CardItem = ({ card, onClick, onUpdated, onDeleted, boardId, listId }) => {
         <button 
           className="card-menu-btn"
           onClick={handleMenuClick}
+          ref={cardMenuBtnRef}
         >
           <FiMoreHorizontal />
         </button>
         {showCardMenu && (
-          <div className="card-menu">
+          <div className="card-menu" ref={cardMenuRef}>
             <button onClick={handleEdit} className="menu-item">
               <FiEdit2 />
               Edit
