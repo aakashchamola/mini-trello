@@ -163,10 +163,10 @@ const Navbar = () => {
                   <FiUser />
                   <span>Profile</span>
                 </Link>
-                {/* <Link to="/settings" className="dropdown-item">
+                <Link to="/settings" className="dropdown-item">
                   <FiSettings />
                   <span>Settings</span>
-                </Link> */}
+                </Link>
                 <hr className="dropdown-divider" />
                 <button onClick={handleLogout} className="dropdown-item logout-item">
                   <FiLogOut />

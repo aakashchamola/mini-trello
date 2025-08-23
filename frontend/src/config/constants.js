@@ -72,6 +72,9 @@ export const PERMISSIONS = {
 export const SOCKET_EVENTS = {
   BOARD_JOIN: 'join-board',
   BOARD_LEAVE: 'leave-board',
+  BOARD_JOINED: 'board-joined',
+  USER_JOINED: 'user-joined',
+  USER_LEFT: 'user-left',
   CARD_CREATED: 'card:created',
   CARD_UPDATED: 'card:updated',
   CARD_MOVED: 'card:moved',

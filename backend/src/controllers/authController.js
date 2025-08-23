@@ -225,12 +225,28 @@ const updateProfile = async (req, res) => {
           });
         }
       } else if (user.provider === 'google') {
-        // Google OAuth users can change username without password verification
-        // But if they want to set a password for their account, they can provide one
-        if (currentPassword) {
-          // This means they want to add a password to their Google account
-          // We'll allow this but won't verify against any existing password
-          console.log('Google user is setting a password for their account');
+        // Google OAuth users must have a password set to change username
+        if (!user.password) {
+          return res.status(400).json({
+            error: 'Password required',
+            message: 'You must set a password first before you can change your username. Please set a password from the settings page.'
+          });
+        }
+        
+        // If they have a password set, they must provide the current password
+        if (!currentPassword) {
+          return res.status(400).json({
+            error: 'Password required',
+            message: 'Current password is required to change username'
+          });
+        }
+        
+        const isCurrentPasswordValid = await user.comparePassword(currentPassword);
+        if (!isCurrentPasswordValid) {
+          return res.status(400).json({
+            error: 'Invalid password',
+            message: 'Current password is incorrect'
+          });
         }
       }
     }

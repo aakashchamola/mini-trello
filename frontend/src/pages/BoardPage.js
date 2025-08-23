@@ -7,6 +7,7 @@ import {
 } from 'react-icons/fi';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUI } from '../contexts/UIContext';
+import { useAuth } from '../contexts/AuthContext';
 import { 
   useBoardWithData, 
   useBoardMembers, 
@@ -27,6 +28,7 @@ import BoardListNew from '../components/board/BoardListNew';
 import CardModal from '../components/board/CardModal';
 import AddListForm from '../components/forms/AddListForm';
 import BoardMemberManager from '../components/board/BoardMemberManager';
+import PresenceAvatars from '../components/board/PresenceAvatars';
 import '../components/board/BoardEnhancements.css';
 import './BoardPage.css';
 
@@ -34,6 +36,7 @@ const BoardPageNew = () => {
   const { boardId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
   const { 
     modals, 
     openModal, 
@@ -566,6 +569,14 @@ const BoardPageNew = () => {
         onOpenMemberModal={handleOpenMemberModal}
         isLoading={membersLoading}
       />
+
+      {/* Presence Avatars */}
+      <div className="presence-container">
+        <PresenceAvatars 
+          boardId={boardId} 
+          currentUser={currentUser} 
+        />
+      </div>
 
       <div className="board-content">
         <DragDropContext 

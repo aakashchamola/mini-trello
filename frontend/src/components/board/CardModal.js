@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FiX, FiEdit, FiCalendar, FiUser, FiMessageCircle } from 'react-icons/fi';
-import { commentAPI, cardAPI, handleAPIError } from '../../services/api';
+import { FiX, FiEdit, FiMessageCircle } from 'react-icons/fi';
+import { commentAPI, handleAPIError } from '../../services/api';
 import { useUpdateCard } from '../../hooks/useCards';
-import { useDebouncedCallback } from '../../hooks/useDebounce';
+import socketService from '../../services/socket';
 import { toast } from 'react-toastify';
 import './CardModal.css';
 
@@ -50,6 +50,64 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
     fetchComments();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardId, listId, card.id]);
+
+  // Real-time comment updates
+  useEffect(() => {
+    const handleCommentCreated = (data) => {
+      console.log('📝 Socket event - Comment created:', data);
+      if (data.comment && data.comment.card_id === card.id) {
+        setComments(prev => {
+          // Avoid duplicates and don't add if it's an optimistic comment that already exists
+          const exists = prev.find(c => c.id === data.comment.id);
+          if (exists) {
+            console.log('Comment already exists, not adding duplicate');
+            return prev;
+          }
+          
+          // Also check if this might be replacing an optimistic comment
+          const optimisticIndex = prev.findIndex(c => c.isOptimistic && c.content === data.comment.content);
+          if (optimisticIndex !== -1) {
+            console.log('Replacing optimistic comment with real comment');
+            // Replace the optimistic comment with the real one
+            const newComments = [...prev];
+            newComments[optimisticIndex] = data.comment;
+            return newComments;
+          }
+          
+          console.log('Adding new comment from socket event');
+          return [...prev, data.comment];
+        });
+      }
+    };
+
+    const handleCommentUpdated = (data) => {
+      console.log('📝 Socket event - Comment updated:', data);
+      if (data.comment && data.comment.card_id === card.id) {
+        setComments(prev => prev.map(comment => 
+          comment.id === data.comment.id ? data.comment : comment
+        ));
+      }
+    };
+
+    const handleCommentDeleted = (data) => {
+      console.log('🗑️ Socket event - Comment deleted:', data);
+      if (data.commentId) {
+        setComments(prev => prev.filter(comment => comment.id !== data.commentId));
+      }
+    };
+
+    // Set up socket listeners
+    socketService.onCommentCreated(handleCommentCreated);
+    socketService.onCommentUpdated(handleCommentUpdated);
+    socketService.onCommentDeleted(handleCommentDeleted);
+
+    // Cleanup function
+    return () => {
+      socketService.off('comment:created', handleCommentCreated);
+      socketService.off('comment:updated', handleCommentUpdated);
+      socketService.off('comment:deleted', handleCommentDeleted);
+    };
+  }, [card.id]);
 
   // Sync form state with card state whenever card changes
   useEffect(() => {
@@ -135,17 +193,34 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
     }
   };
 
-  // Debounced save to prevent duplicate API calls
-  const debouncedSave = useDebouncedCallback(handleSave, 300);
-
   const handleAddComment = async () => {
     if (!newComment.trim()) return;
 
     setCommentLoading(true);
+    const tempCommentId = `temp-${Date.now()}`; // Temporary ID for optimistic update
+    const tempComment = {
+      id: tempCommentId,
+      content: newComment.trim(),
+      card_id: card.id,
+      author: {
+        id: 'current-user', // We don't have current user context here, but this is temporary
+        username: 'You',
+        email: ''
+      },
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      isOptimistic: true // Flag to identify optimistic comments
+    };
+
     try {
       console.log('Adding comment to card:', card.id);
+      
+      // Optimistic update - add temporary comment immediately
+      setComments(prev => [...prev, tempComment]);
+      setNewComment(''); // Clear input immediately for better UX
+      
       const response = await commentAPI.create(boardId, listId, card.id, {
-        content: newComment.trim()
+        content: tempComment.content
       });
 
       console.log('Raw API response:', response.data);
@@ -155,17 +230,23 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
       
       console.log('Extracted comment data:', newCommentData);
       
-      // Ensure the new comment has valid structure
+      // Replace the optimistic comment with the real one
       if (newCommentData && newCommentData.id) {
-        setComments(prev => [...prev, newCommentData]);
-        setNewComment('');
+        setComments(prev => prev.map(comment => 
+          comment.id === tempCommentId ? newCommentData : comment
+        ));
         toast.success('Comment added');
       } else {
         console.error('Invalid comment data received:', response.data);
-        toast.error('Comment added but may not display correctly');
+        // Remove the optimistic comment if API failed
+        setComments(prev => prev.filter(comment => comment.id !== tempCommentId));
+        toast.error('Failed to add comment');
       }
     } catch (error) {
       console.error('Error adding comment:', error);
+      // Remove the optimistic comment on error
+      setComments(prev => prev.filter(comment => comment.id !== tempCommentId));
+      setNewComment(tempComment.content); // Restore the comment text
       toast.error(handleAPIError(error));
     } finally {
       setCommentLoading(false);

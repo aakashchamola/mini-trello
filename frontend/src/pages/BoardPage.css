@@ -28,6 +28,15 @@
   50% { opacity: 0.7; }
 }
 
+/* Presence Avatars Container */
+.presence-container {
+  padding: 0 24px 12px 24px;
+  display: flex;
+  justify-content: flex-end;
+  position: relative;
+  z-index: 10;
+}
+
 .board-content {
   flex: 1;
   display: flex;

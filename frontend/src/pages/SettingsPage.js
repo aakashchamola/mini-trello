@@ -1,9 +1,17 @@
 import React, { useState } from 'react';
 import { toast } from 'react-toastify';
+import { useAuth } from '../contexts/AuthContext';
 import { authAPI, handleAPIError } from '../services/api';
 import './SettingsPage.css';
 
-const SettingsPage = ({ currentUser }) => {
+const SettingsPage = () => {
+  const { user: currentUser } = useAuth();
+  
+  // Debug: Log current user data
+  console.log('SettingsPage - Current User:', currentUser);
+  console.log('SettingsPage - Provider:', currentUser?.provider);
+  console.log('SettingsPage - Has Password:', currentUser?.hasPassword);
+  
   // Username change state
   const [newUsername, setNewUsername] = useState('');
   const [currentPasswordForUsername, setCurrentPasswordForUsername] = useState('');
@@ -30,8 +38,14 @@ const SettingsPage = ({ currentUser }) => {
       return;
     }
     
-    // For local users, password is required
-    if (currentUser?.provider === 'local' && !currentPasswordForUsername.trim()) {
+    // For Google users, require them to set a password first
+    if (currentUser?.provider === 'google' && !currentUser?.hasPassword) {
+      toast.error('Please set a password first before changing your username');
+      return;
+    }
+    
+    // For all users with passwords (local users and Google users who have set a password), password is required
+    if ((currentUser?.provider === 'local' || (currentUser?.provider === 'google' && currentUser?.hasPassword)) && !currentPasswordForUsername.trim()) {
       toast.error('Please enter your current password');
       return;
     }
@@ -40,8 +54,8 @@ const SettingsPage = ({ currentUser }) => {
     try {
       const updateData = { username: newUsername };
       
-      // Only include password for local users
-      if (currentUser?.provider === 'local') {
+      // Include password for local users and Google users who have set a password
+      if (currentUser?.provider === 'local' || (currentUser?.provider === 'google' && currentUser?.hasPassword)) {
         updateData.currentPassword = currentPasswordForUsername;
       }
       
@@ -114,38 +128,92 @@ const SettingsPage = ({ currentUser }) => {
   return (
     <div className="settings-page">
       <h2>Account Settings</h2>
+      
+      {/* For Google users without password: Show Set Password section first */}
+      {currentUser?.provider === 'google' && !currentUser?.hasPassword && (
+        <div className="settings-section priority-section">
+          <h3>🔐 Set Password (Required)</h3>
+          <p className="warning-text">
+            ⚠️ You must set a password to unlock all account features, including the ability to change your username.
+          </p>
+          <p className="info-text">
+            Since you signed in with Google, you don't have a password for this app. 
+            Setting a password will allow you to log in with your email and password, and unlock additional account management features.
+          </p>
+          <form onSubmit={handleSetPassword} className="settings-form">
+            <label>New Password</label>
+            <input
+              type="password"
+              value={googleNewPassword}
+              onChange={e => setGoogleNewPassword(e.target.value)}
+              placeholder="Enter new password"
+              required
+            />
+            <label>Confirm New Password</label>
+            <input
+              type="password"
+              value={googleConfirmPassword}
+              onChange={e => setGoogleConfirmPassword(e.target.value)}
+              placeholder="Confirm new password"
+              required
+            />
+            <button type="submit" disabled={isSettingPassword} className="primary-button">
+              {isSettingPassword ? 'Setting Password...' : 'Set Password Now'}
+            </button>
+          </form>
+        </div>
+      )}
+      
+      {/* Change Username Section */}
       <div className="settings-section">
         <h3>Change Username</h3>
-        <form onSubmit={handleUsernameUpdate} className="settings-form">
-          <label>New Username</label>
-          <input
-            type="text"
-            value={newUsername}
-            onChange={e => setNewUsername(e.target.value)}
-            placeholder="Enter new username"
-            required
-          />
-          {currentUser?.provider === 'local' && (
-            <>
-              <label>Current Password</label>
-              <input
-                type="password"
-                value={currentPasswordForUsername}
-                onChange={e => setCurrentPasswordForUsername(e.target.value)}
-                placeholder="Enter current password"
-                required
-              />
-            </>
-          )}
-          {currentUser?.provider === 'google' && (
-            <p className="info-text">
-              Since you signed in with Google, you can change your username without entering a password.
+        {currentUser?.provider === 'google' && !currentUser?.hasPassword ? (
+          <div className="disabled-section">
+            <p className="warning-text">
+              ⚠️ You must set a password first before you can change your username.
             </p>
-          )}
-          <button type="submit" disabled={isUpdatingUsername}>
-            {isUpdatingUsername ? 'Updating...' : 'Update Username'}
-          </button>
-        </form>
+            <form className="settings-form disabled-form">
+              <label>New Username</label>
+              <input
+                type="text"
+                value={newUsername}
+                onChange={e => setNewUsername(e.target.value)}
+                placeholder="Enter new username"
+                disabled
+                className="disabled-input"
+              />
+              <button type="button" disabled className="disabled-button">
+                Set Password First
+              </button>
+            </form>
+          </div>
+        ) : (
+          <form onSubmit={handleUsernameUpdate} className="settings-form">
+            <label>New Username</label>
+            <input
+              type="text"
+              value={newUsername}
+              onChange={e => setNewUsername(e.target.value)}
+              placeholder="Enter new username"
+              required
+            />
+            {(currentUser?.provider === 'local' || (currentUser?.provider === 'google' && currentUser?.hasPassword)) && (
+              <>
+                <label>Current Password</label>
+                <input
+                  type="password"
+                  value={currentPasswordForUsername}
+                  onChange={e => setCurrentPasswordForUsername(e.target.value)}
+                  placeholder="Enter current password"
+                  required
+                />
+              </>
+            )}
+            <button type="submit" disabled={isUpdatingUsername}>
+              {isUpdatingUsername ? 'Updating...' : 'Update Username'}
+            </button>
+          </form>
+        )}
       </div>
       {currentUser?.provider === 'local' && (
         <div className="settings-section">
@@ -215,37 +283,6 @@ const SettingsPage = ({ currentUser }) => {
             />
             <button type="submit" disabled={isUpdatingPassword}>
               {isUpdatingPassword ? 'Updating...' : 'Update Password'}
-            </button>
-          </form>
-        </div>
-      )}
-      
-      {currentUser?.provider === 'google' && !currentUser?.hasPassword && (
-        <div className="settings-section">
-          <h3>Set Password</h3>
-          <p className="info-text">
-            Since you signed in with Google, you don't have a password for this app. 
-            You can optionally set a password to also log in with your email and password.
-          </p>
-          <form onSubmit={handleSetPassword} className="settings-form">
-            <label>New Password</label>
-            <input
-              type="password"
-              value={googleNewPassword}
-              onChange={e => setGoogleNewPassword(e.target.value)}
-              placeholder="Enter new password"
-              required
-            />
-            <label>Confirm New Password</label>
-            <input
-              type="password"
-              value={googleConfirmPassword}
-              onChange={e => setGoogleConfirmPassword(e.target.value)}
-              placeholder="Confirm new password"
-              required
-            />
-            <button type="submit" disabled={isSettingPassword}>
-              {isSettingPassword ? 'Setting Password...' : 'Set Password'}
             </button>
           </form>
         </div>

@@ -427,6 +427,18 @@ class SocketService {
     this.on(SOCKET_EVENTS.USER_PRESENCE, callback);
   }
 
+  onBoardJoined(callback) {
+    this.on(SOCKET_EVENTS.BOARD_JOINED, callback);
+  }
+
+  onUserJoined(callback) {
+    this.on(SOCKET_EVENTS.USER_JOINED, callback);
+  }
+
+  onUserLeft(callback) {
+    this.on(SOCKET_EVENTS.USER_LEFT, callback);
+  }
+
   // Utility methods
   isSocketConnected() {
     return this.isConnected && this.socket && this.socket.connected;

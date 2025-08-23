@@ -52,9 +52,24 @@ const commentController = {
         include: [{
           model: User,
           as: 'author',
-          attributes: ['id', 'username', 'email']
+          attributes: ['id', 'username', 'email', 'first_name', 'last_name', 'avatar_url']
         }]
       });
+
+      // Emit real-time update to all clients on this board
+      if (req.io) {
+        console.log('Emitting comment:created event to board-' + boardId);
+        req.io.to(`board-${boardId}`).emit('comment:created', {
+          comment: commentWithAuthor,
+          cardId: parseInt(cardId),
+          listId: parseInt(listId),
+          boardId: parseInt(boardId),
+          action: 'created',
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        console.log('req.io is not available for comment creation');
+      }
 
       res.status(201).json({
         comment: commentWithAuthor,
@@ -103,7 +118,7 @@ const commentController = {
         include: [{
           model: User,
           as: 'author',
-          attributes: ['id', 'username', 'email']
+          attributes: ['id', 'username', 'email', 'first_name', 'last_name', 'avatar_url']
         }],
         order: [['createdAt', 'ASC']]
       });
@@ -191,9 +206,24 @@ const commentController = {
         include: [{
           model: User,
           as: 'author',
-          attributes: ['id', 'username', 'email']
+          attributes: ['id', 'username', 'email', 'first_name', 'last_name', 'avatar_url']
         }]
       });
+
+      // Emit real-time update to all clients on this board
+      if (req.io) {
+        console.log('Emitting comment:updated event to board-' + boardId);
+        req.io.to(`board-${boardId}`).emit('comment:updated', {
+          comment: updatedComment,
+          cardId: parseInt(cardId),
+          listId: parseInt(listId),
+          boardId: parseInt(boardId),
+          action: 'updated',
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        console.log('req.io is not available for comment update');
+      }
 
       res.json({
         comment: updatedComment,
@@ -261,6 +291,21 @@ const commentController = {
 
       // Delete the comment
       await comment.destroy();
+
+      // Emit real-time update to all clients on this board
+      if (req.io) {
+        console.log('Emitting comment:deleted event to board-' + boardId);
+        req.io.to(`board-${boardId}`).emit('comment:deleted', {
+          commentId: parseInt(commentId),
+          cardId: parseInt(cardId),
+          listId: parseInt(listId),
+          boardId: parseInt(boardId),
+          action: 'deleted',
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        console.log('req.io is not available for comment deletion');
+      }
 
       res.json({
         message: 'Comment deleted successfully',

@@ -29,7 +29,7 @@ import NotFoundPage from './pages/NotFoundPage';
 import SettingsPage from './pages/SettingsPage';
 
 // Debug Components
-import MutationTester from './components/debug/MutationTester';
+// import MutationTester from './components/debug/MutationTester';
 
 // Styles
 import './App.css';

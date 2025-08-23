@@ -266,7 +266,7 @@ const Sidebar = () => {
         </div> */}
 
         {/* Settings */}
-        {/* <div className="nav-section">
+        <div className="nav-section">
           <Link
             to="/settings"
             className={`nav-item ${isActive("/settings") ? "active" : ""}`}
@@ -274,7 +274,7 @@ const Sidebar = () => {
             <FiSettings />
             <span>Settings</span>
           </Link>
-        </div> */}
+        </div>
       </div>
 
       {/* Create Board Modal rendered via portal to avoid stacking context issues */}

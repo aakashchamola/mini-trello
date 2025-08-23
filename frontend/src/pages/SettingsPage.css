@@ -85,6 +85,64 @@
   margin: 12px 0;
 }
 
+/* Disabled section styles */
+.disabled-section {
+  opacity: 0.7;
+}
+
+.priority-section {
+  border: 2px solid #ffc107;
+  border-radius: 8px;
+  padding: 20px;
+  background: #fffbf0;
+}
+
+.priority-section h3 {
+  color: #856404;
+  margin-bottom: 16px;
+}
+
+.warning-text {
+  background: #fff3cd;
+  color: #856404;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 1.5;
+  border-left: 4px solid #ffc107;
+  margin: 12px 0;
+  font-weight: 500;
+}
+
+.disabled-form {
+  pointer-events: none;
+}
+
+.disabled-input {
+  background: #f5f5f5 !important;
+  color: #999 !important;
+  cursor: not-allowed !important;
+}
+
+.disabled-button {
+  background: #6c757d !important;
+  cursor: not-allowed !important;
+  opacity: 0.6;
+}
+
+.disabled-button:hover {
+  background: #6c757d !important;
+}
+
+.primary-button {
+  background: #28a745 !important;
+  font-weight: 600;
+}
+
+.primary-button:hover:not(:disabled) {
+  background: #218838 !important;
+}
+
 @media (max-width: 600px) {
   .settings-page {
     max-width: 98vw;
