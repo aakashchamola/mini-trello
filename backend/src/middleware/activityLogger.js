@@ -372,7 +372,7 @@ class ActivityLogger {
       const { boardId } = req.params;
       const {
         page = 1,
-        limit = 50,
+        limit = 20, // Reduced default limit for better performance
         actionType,
         entityType,
         userId: filterUserId
@@ -392,19 +392,36 @@ class ActivityLogger {
           {
             model: require('../models/User'),
             as: 'user',
-            attributes: ['id', 'username', 'email']
+            attributes: ['id', 'username', 'email', 'first_name', 'last_name', 'avatar_url'] // Added more user fields
           }
         ],
+        attributes: [
+          'id', 'actionType', 'entityType', 'entityId', 
+          'description', 'oldValue', 'newValue', 'createdAt'
+        ], // Limit returned fields for better performance
         order: [['createdAt', 'DESC']],
         limit: parseInt(limit),
         offset: parseInt(offset)
       });
 
+      // Transform activities to match frontend expectations
+      const transformedActivities = activities.map(activity => ({
+        id: activity.id,
+        action: activity.actionType, // Map to 'action' field
+        entityType: activity.entityType,
+        entityId: activity.entityId,
+        details: activity.description,
+        oldValue: activity.oldValue ? JSON.parse(activity.oldValue) : null,
+        newValue: activity.newValue ? JSON.parse(activity.newValue) : null,
+        createdAt: activity.createdAt,
+        user: activity.user
+      }));
+
       const totalPages = Math.ceil(totalCount / limit);
 
       res.json({
         success: true,
-        activities,
+        activities: transformedActivities,
         totalCount,
         totalPages,
         currentPage: parseInt(page),

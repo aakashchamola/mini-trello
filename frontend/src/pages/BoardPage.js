@@ -2,8 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { 
-  FiPlus, 
-  FiActivity
+  FiPlus
 } from 'react-icons/fi';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUI } from '../contexts/UIContext';
@@ -27,6 +26,7 @@ import CardModal from '../components/board/CardModal';
 import AddListForm from '../components/forms/AddListForm';
 import BoardMemberManager from '../components/board/BoardMemberManager';
 import PresenceAvatars from '../components/board/PresenceAvatars';
+import ActivitySidebar from '../components/board/ActivitySidebar';
 import '../components/board/BoardEnhancements.css';
 import './BoardPage.css';
 
@@ -776,52 +776,12 @@ const BoardPageNew = () => {
 
       {/* Activity Sidebar */}
       {boardSettings.showActivities && (
-        <div className="activity-sidebar">
-          <div className="activity-header">
-            <h3>
-              <FiActivity />
-              Activity
-            </h3>
-            <button
-              className="close-activity"
-              onClick={toggleActivities}
-            >
-              ×
-            </button>
-          </div>
-          <div className="activity-list">
-            {activitiesLoading ? (
-              <LoadingSpinner size="small" />
-            ) : activities.length > 0 ? (
-              activities.map(activity => (
-                <div key={activity.id} className="activity-item">
-                  <div className="activity-avatar">
-                    {activity.user?.name?.charAt(0) || 'U'}
-                  </div>
-                  <div className="activity-content">
-                    <div className="activity-description">
-                      <strong>{activity.user?.name || 'Unknown User'}</strong>
-                      <span className="activity-action">{activity.description}</span>
-                    </div>
-                    <span className="activity-time">
-                      {new Date(activity.created_at).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </span>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="no-activities">
-                <p>No recent activity</p>
-                <p>Activity will appear here as you work on this board</p>
-              </div>
-            )}
-          </div>
-        </div>
+        <ActivitySidebar
+          activities={activities}
+          isLoading={activitiesLoading}
+          onClose={toggleActivities}
+          boardMembers={boardMembers}
+        />
       )}
 
       {/* Card Modal */}

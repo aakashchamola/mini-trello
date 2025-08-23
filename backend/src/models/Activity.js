@@ -28,6 +28,7 @@ const Activity = sequelize.define('Activity', {
   actionType: {
     type: DataTypes.STRING(50),
     allowNull: false,
+    field: 'action_type', // Map to correct database column
     validate: {
       isIn: {
         args: [['created', 'updated', 'deleted', 'moved', 'archived', 'commented', 'assigned', 'invited', 'joined', 'left']],
@@ -64,6 +65,7 @@ const Activity = sequelize.define('Activity', {
 }, {
   tableName: 'activities',
   timestamps: true,
+  underscored: true, // Add this to ensure snake_case columns
   indexes: [
     {
       fields: ['board_id']
