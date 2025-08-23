@@ -82,46 +82,101 @@ const BoardPageNew = () => {
   useEffect(() => {
     if (!boardId) return;
 
+    console.log('Setting up socket connection for board:', boardId);
+
     // Connect to socket service
     socketService.connect();
-    socketService.joinBoard(boardId);
+    
+    // Add a small delay to ensure connection is established
+    const joinTimeout = setTimeout(() => {
+      console.log('Joining board:', boardId);
+      socketService.joinBoard(boardId);
+    }, 100);
 
-    // Set up socket event listeners
+    // Set up socket event listeners with enhanced debugging
     const handleCardCreated = (data) => {
-      console.log('Socket event - Card created:', data);
-      // Invalidate and refetch the list cards
-      queryClient.invalidateQueries({ queryKey: ['listCards', data.listId] });
+      console.log('🎉 Socket event - Card created:', data);
+      // Invalidate the board with data query since it contains all lists and cards
+      queryClient.invalidateQueries({ queryKey: ['boards', boardId, 'with-data'] });
+      // Also invalidate specific list cards if we have the listId
+      if (data.listId) {
+        queryClient.invalidateQueries({ queryKey: ['lists', data.listId, 'cards'] });
+      }
+      // Also invalidate board activities
+      queryClient.invalidateQueries({ queryKey: ['boards', boardId, 'activities'] });
     };
 
     const handleCardUpdated = (data) => {
-      console.log('Socket event - Card updated:', data);
-      // Invalidate and refetch the list cards
-      queryClient.invalidateQueries({ queryKey: ['listCards', data.listId] });
+      console.log('✏️ Socket event - Card updated:', data);
+      // Invalidate the board with data query since it contains all lists and cards
+      queryClient.invalidateQueries({ queryKey: ['boards', boardId, 'with-data'] });
+      // Also invalidate specific list cards and card data
+      if (data.listId) {
+        queryClient.invalidateQueries({ queryKey: ['lists', data.listId, 'cards'] });
+      }
+      if (data.card?.id) {
+        queryClient.invalidateQueries({ queryKey: ['cards', data.card.id] });
+      }
+      // Also invalidate board activities
+      queryClient.invalidateQueries({ queryKey: ['boards', boardId, 'activities'] });
     };
 
     const handleCardDeleted = (data) => {
-      console.log('Socket event - Card deleted:', data);
-      // Invalidate and refetch the list cards
-      queryClient.invalidateQueries({ queryKey: ['listCards', data.listId] });
+      console.log('🗑️ Socket event - Card deleted:', data);
+      // Invalidate the board with data query since it contains all lists and cards
+      queryClient.invalidateQueries({ queryKey: ['boards', boardId, 'with-data'] });
+      // Also invalidate specific list cards
+      if (data.listId) {
+        queryClient.invalidateQueries({ queryKey: ['lists', data.listId, 'cards'] });
+      }
+      // Remove the deleted card from cache
+      if (data.cardId) {
+        queryClient.removeQueries({ queryKey: ['cards', data.cardId] });
+      }
+      // Also invalidate board activities
+      queryClient.invalidateQueries({ queryKey: ['boards', boardId, 'activities'] });
     };
 
     const handleListCreated = (data) => {
-      console.log('Socket event - List created:', data);
-      // Invalidate and refetch the board lists
-      queryClient.invalidateQueries({ queryKey: ['lists', boardId] });
+      console.log('📝 Socket event - List created:', data);
+      // Invalidate the board with data query since it contains all lists and cards
+      queryClient.invalidateQueries({ queryKey: ['boards', boardId, 'with-data'] });
+      // Also invalidate board lists
+      queryClient.invalidateQueries({ queryKey: ['boards', boardId, 'lists'] });
+      // Also invalidate board activities
+      queryClient.invalidateQueries({ queryKey: ['boards', boardId, 'activities'] });
     };
 
     const handleListUpdated = (data) => {
-      console.log('Socket event - List updated:', data);
-      // Invalidate and refetch the board lists
-      queryClient.invalidateQueries({ queryKey: ['lists', boardId] });
+      console.log('📝 Socket event - List updated:', data);
+      // Invalidate the board with data query since it contains all lists and cards
+      queryClient.invalidateQueries({ queryKey: ['boards', boardId, 'with-data'] });
+      // Also invalidate board lists
+      queryClient.invalidateQueries({ queryKey: ['boards', boardId, 'lists'] });
+      // Also invalidate specific list if we have the id
+      if (data.list?.id) {
+        queryClient.invalidateQueries({ queryKey: ['lists', data.list.id] });
+      }
+      // Also invalidate board activities
+      queryClient.invalidateQueries({ queryKey: ['boards', boardId, 'activities'] });
     };
 
     const handleListDeleted = (data) => {
-      console.log('Socket event - List deleted:', data);
-      // Invalidate and refetch the board lists
-      queryClient.invalidateQueries({ queryKey: ['lists', boardId] });
-    };    // Register socket event listeners
+      console.log('🗑️ Socket event - List deleted:', data);
+      // Invalidate the board with data query since it contains all lists and cards
+      queryClient.invalidateQueries({ queryKey: ['boards', boardId, 'with-data'] });
+      // Also invalidate board lists
+      queryClient.invalidateQueries({ queryKey: ['boards', boardId, 'lists'] });
+      // Remove the deleted list from cache
+      if (data.listId) {
+        queryClient.removeQueries({ queryKey: ['lists', data.listId] });
+        queryClient.removeQueries({ queryKey: ['lists', data.listId, 'cards'] });
+      }
+      // Also invalidate board activities
+      queryClient.invalidateQueries({ queryKey: ['boards', boardId, 'activities'] });
+    };
+
+    // Register socket event listeners
     socketService.onCardCreated(handleCardCreated);
     socketService.onCardUpdated(handleCardUpdated);
     socketService.onCardDeleted(handleCardDeleted);
@@ -129,8 +184,18 @@ const BoardPageNew = () => {
     socketService.onListUpdated(handleListUpdated);
     socketService.onListDeleted(handleListDeleted);
 
+    // Log socket connection status
+    const checkConnection = setInterval(() => {
+      const isConnected = socketService.isSocketConnected();
+      const currentBoard = socketService.getCurrentBoardId();
+      console.log(`🔌 Socket status - Connected: ${isConnected}, Current Board: ${currentBoard}`);
+    }, 5000);
+
     // Cleanup on unmount
     return () => {
+      clearTimeout(joinTimeout);
+      clearInterval(checkConnection);
+      console.log('Cleaning up socket listeners for board:', boardId);
       socketService.removeAllListeners('card:created');
       socketService.removeAllListeners('card:updated');
       socketService.removeAllListeners('card:deleted');
@@ -330,16 +395,15 @@ const BoardPageNew = () => {
     closeModal('cardDetails');
   };
 
-  const handleCardUpdated = async (cardId, listId, updates) => {
-    try {
-      await updateCardMutation.mutateAsync({ 
-        boardId, 
-        listId, 
-        cardId, 
-        updates 
-      });
-    } catch (error) {
-      console.error('Failed to update card:', error);
+  const handleCardUpdated = (cardId, listId, updates) => {
+    // Card has already been updated by the CardModal's React Query mutation
+    // React Query optimistic updates have already updated the cache
+    // Just handle any UI state changes if needed
+    console.log('Card updated successfully:', cardId, 'in list:', listId, 'with updates:', updates);
+    
+    // Close the card modal if it's open
+    if (modals.cardDetails.isOpen && modals.cardDetails.card?.id === cardId) {
+      closeModal('cardDetails');
     }
   };
 
@@ -350,12 +414,11 @@ const BoardPageNew = () => {
     console.log('Card deleted successfully:', cardId, 'from list:', listId);
   };
 
-  const handleListUpdated = async (listId, updates) => {
-    try {
-      await updateListMutation.mutateAsync({ boardId, listId, updates });
-    } catch (error) {
-      console.error('Failed to update list:', error);
-    }
+  const handleListUpdated = (listId, updates) => {
+    // List has already been updated by the BoardListNew's React Query mutation
+    // React Query optimistic updates have already updated the cache
+    // Just handle any UI state changes if needed
+    console.log('List updated successfully:', listId, 'with updates:', updates);
   };
 
   const handleListDeleted = async (listId) => {

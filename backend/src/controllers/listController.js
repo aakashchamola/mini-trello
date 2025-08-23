@@ -80,12 +80,15 @@ const listController = {
 
       // Emit real-time update to all clients on this board
       if (req.io) {
+        console.log('Emitting list:created event to board-' + boardIdNum);
         req.io.to(`board-${boardIdNum}`).emit('list:created', {
           list: newList,
           boardId: boardIdNum,
           userId: req.user.id,
           timestamp: new Date()
         });
+      } else {
+        console.log('req.io is not available for list creation');
       }
 
       res.status(201).json({
@@ -274,12 +277,15 @@ const listController = {
 
       // Emit real-time update to all clients on this board
       if (req.io) {
+        console.log('Emitting list:updated event to board-' + board.id);
         req.io.to(`board-${board.id}`).emit('list:updated', {
           list: updatedListData,
           boardId: board.id,
           userId: req.user.id,
           timestamp: new Date()
         });
+      } else {
+        console.log('req.io is not available for list update');
       }
 
       res.json({
@@ -421,12 +427,15 @@ const listController = {
 
       // Emit real-time update to all clients on this board
       if (req.io) {
+        console.log('Emitting list:deleted event to board-' + board.id);
         req.io.to(`board-${board.id}`).emit('list:deleted', {
           listId: list.id,
           boardId: board.id,
           userId: req.user.id,
           timestamp: new Date()
         });
+      } else {
+        console.log('req.io is not available for list deletion');
       }
 
       res.json({

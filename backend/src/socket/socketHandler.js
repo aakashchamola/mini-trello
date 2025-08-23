@@ -56,8 +56,10 @@ class SocketHandler {
     // Handle joining a board
     socket.on('join-board', async (data) => {
       try {
+        console.log(`Socket ${socket.id} attempting to join board ${data.boardId}`);
         await this.handleJoinBoard(socket, data);
       } catch (error) {
+        console.error('Error joining board:', error);
         socket.emit('error', { message: error.message });
       }
     });

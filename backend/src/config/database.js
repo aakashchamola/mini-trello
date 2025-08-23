@@ -21,7 +21,7 @@ if (useMySQL) {
       host: process.env.DB_HOST || 'localhost',
       port: process.env.DB_PORT || 3306,
       dialect: 'mysql',
-      logging: isDevelopment ? console.log : false,
+      logging: false, // Only log errors, not all SQL queries
       pool: {
         max: 10,
         min: 0,
@@ -35,7 +35,7 @@ if (useMySQL) {
   sequelize = new Sequelize({
     dialect: 'sqlite',
     storage: path.join(__dirname, '../../database.sqlite'),
-    logging: isDevelopment ? console.log : false,
+    logging: false, // Only log errors, not all SQL queries
     pool: {
       max: 5,
       min: 0,

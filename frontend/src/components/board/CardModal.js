@@ -119,8 +119,8 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
       
       // Update the card in the parent component's state
       if (onCardUpdated) {
-        console.log('Calling onCardUpdated with:', newCardData);
-        onCardUpdated(newCardData, listId);
+        console.log('Calling onCardUpdated with cardId:', card.id, 'listId:', listId, 'updates:', updateData);
+        onCardUpdated(card.id, listId, updateData);
       }
     } catch (error) {
       console.error('Error updating card:', error);

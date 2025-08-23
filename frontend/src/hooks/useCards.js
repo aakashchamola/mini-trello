@@ -131,6 +131,9 @@ export const useCreateCard = () => {
         );
       });
       
+      // Invalidate the board with data query to update the UI
+      queryClient.invalidateQueries({ queryKey: queryKeys.board(boardId).concat(['with-data']) });
+      
       // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: queryKeys.boardLists(boardId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.board(boardId) });
@@ -196,6 +199,9 @@ export const useUpdateCard = () => {
         );
       });
       
+      // Invalidate the board with data query to update the UI
+      queryClient.invalidateQueries({ queryKey: queryKeys.board(boardId).concat(['with-data']) });
+      
       // Invalidate board activities
       queryClient.invalidateQueries({ queryKey: queryKeys.boardActivities(boardId) });
       toast.success('Card updated successfully!');
@@ -239,6 +245,9 @@ export const useDeleteCard = () => {
       // Remove card from cache
       queryClient.removeQueries({ queryKey: queryKeys.card(cardId) });
       queryClient.removeQueries({ queryKey: queryKeys.cardComments(cardId) });
+      
+      // Invalidate the board with data query to update the UI
+      queryClient.invalidateQueries({ queryKey: queryKeys.board(boardId).concat(['with-data']) });
       
       // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: queryKeys.boardLists(boardId) });

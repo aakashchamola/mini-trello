@@ -70,8 +70,8 @@ export const PERMISSIONS = {
 
 // Socket Events
 export const SOCKET_EVENTS = {
-  BOARD_JOIN: 'board:join',
-  BOARD_LEAVE: 'board:leave',
+  BOARD_JOIN: 'join-board',
+  BOARD_LEAVE: 'leave-board',
   CARD_CREATED: 'card:created',
   CARD_UPDATED: 'card:updated',
   CARD_MOVED: 'card:moved',

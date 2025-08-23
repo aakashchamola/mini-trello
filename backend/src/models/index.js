@@ -240,7 +240,8 @@ const syncDatabase = async (force = false) => {
       await sequelize.sync({ force: true });
     } else {
       console.log('Performing safe database sync (preserving existing data)...');
-      await sequelize.sync({ alter: true });
+      // Use basic sync instead of alter to avoid backup table conflicts
+      await sequelize.sync({ alter: false });
     }
     
     console.log('Database synchronized successfully');

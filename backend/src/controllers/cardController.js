@@ -107,6 +107,7 @@ const cardController = {
 
       // Emit real-time update to all clients on this board
       if (req.io) {
+        console.log('Emitting card:created event to board-' + boardIdNum);
         req.io.to(`board-${boardIdNum}`).emit('card:created', {
           card: newCard,
           boardId: boardIdNum,
@@ -114,6 +115,8 @@ const cardController = {
           userId: req.user.id,
           timestamp: new Date()
         });
+      } else {
+        console.log('req.io is not available for card creation');
       }
 
       res.status(201).json({
@@ -529,6 +532,7 @@ const cardController = {
 
       // Emit real-time update to all clients on this board
       if (req.io) {
+        console.log('Emitting card:updated event to board-' + board.id);
         req.io.to(`board-${board.id}`).emit('card:updated', {
           card: updatedCard,
           boardId: board.id,
@@ -536,6 +540,8 @@ const cardController = {
           userId: req.user.id,
           timestamp: new Date()
         });
+      } else {
+        console.log('req.io is not available for card update');
       }
 
       res.json({

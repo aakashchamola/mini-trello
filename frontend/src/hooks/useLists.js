@@ -93,6 +93,9 @@ export const useCreateList = () => {
         );
       });
       
+      // Invalidate the board with data query to update the UI
+      queryClient.invalidateQueries({ queryKey: queryKeys.board(boardId).concat(['with-data']) });
+      
       // Invalidate related queries
       queryClient.invalidateQueries({ queryKey: queryKeys.board(boardId) });
       toast.success('List created successfully!');
@@ -144,6 +147,10 @@ export const useUpdateList = () => {
           list.id === updatedList.id ? updatedList : list
         );
       });
+      
+      // Invalidate the board with data query to update the UI
+      queryClient.invalidateQueries({ queryKey: queryKeys.board(boardId).concat(['with-data']) });
+      
       toast.success('List updated successfully!');
     },
     onError: (error, { boardId }, context) => {
@@ -183,6 +190,10 @@ export const useDeleteList = () => {
       queryClient.removeQueries({ queryKey: queryKeys.list(listId) });
       // Remove all cards from this list
       queryClient.removeQueries({ queryKey: queryKeys.listCards(listId) });
+      
+      // Invalidate the board with data query to update the UI
+      queryClient.invalidateQueries({ queryKey: queryKeys.board(boardId).concat(['with-data']) });
+      
       // Invalidate board query
       queryClient.invalidateQueries({ queryKey: queryKeys.board(boardId) });
       toast.success('List deleted successfully!');

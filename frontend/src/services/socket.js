@@ -33,6 +33,12 @@ class SocketService {
       this.socket.on('connect', () => {
         console.log('Socket connected successfully');
         this.isConnected = true;
+        
+        // Rejoin board if we were in one before disconnection
+        if (this.currentBoardId) {
+          console.log('Rejoining board after reconnection:', this.currentBoardId);
+          this.socket.emit(SOCKET_EVENTS.BOARD_JOIN, { boardId: this.currentBoardId });
+        }
       });
 
       this.socket.on('disconnect', (reason) => {
@@ -41,6 +47,7 @@ class SocketService {
         
         // Attempt to reconnect if disconnection was not intentional
         if (reason === 'io server disconnect') {
+          console.log('Server disconnected, attempting to reconnect...');
           this.socket.connect();
         }
       });
