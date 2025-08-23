@@ -181,6 +181,7 @@ export const authAPI = {
   getProfile: () => api.get('/auth/profile'),
   updateProfile: (data) => api.put('/auth/profile', data),
   changePassword: (data) => api.put('/auth/change-password', data),
+  setPassword: (data) => api.put('/auth/set-password', data),
   refreshToken: (refreshToken) => api.post('/auth/refresh-token', { refreshToken }),
   googleLogin: (googleData) => api.post('/auth/google/login', googleData),
   googleRegister: (googleData) => api.post('/auth/google/register', googleData)
@@ -272,30 +273,25 @@ export const invitationAPI = {
 export const handleAPIError = (error) => {
   if (error.response) {
     // Server responded with error status
-    const { status, data } = error.response;
+    const { data } = error.response;
     
-    switch (status) {
-      case 400:
-        return data.message || 'Invalid request';
-      case 401:
-        return 'You are not authorized to perform this action';
-      case 403:
-        return 'You do not have permission to perform this action';
-      case 404:
-        return 'The requested resource was not found';
-      case 409:
-        return data.message || 'Resource already exists';
-      case 422:
-        return data.errors ? 
-          data.errors.map(err => err.message).join(', ') : 
-          'Validation failed';
-      case 429:
-        return 'Too many requests. Please try again later';
-      case 500:
-        return 'Internal server error. Please try again later';
-      default:
-        return data.message || 'An unexpected error occurred';
+    // Always prefer the backend error message if available
+    if (data?.message) {
+      return data.message;
     }
+    
+    // Handle validation errors with details
+    if (data?.details && Array.isArray(data.details)) {
+      return data.details[0]?.message || data.details[0] || 'Validation error';
+    }
+    
+    // Handle multiple error format
+    if (data?.errors && Array.isArray(data.errors)) {
+      return data.errors.map(err => err.message || err).join(', ');
+    }
+    
+    // Fallback to generic error or error field
+    return data?.error || 'An unexpected error occurred';
   } else if (error.request) {
     // Network error
     return 'Network error. Please check your connection';

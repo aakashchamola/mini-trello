@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from 'react-toastify';
 import { useCreateBoard } from '../../hooks/useBoards';
 import { useCreateList } from '../../hooks/useLists';
 import { useCreateCard } from '../../hooks/useCards';
@@ -29,7 +30,7 @@ const MutationTester = () => {
 
   const handleCreateList = () => {
     if (!boardId) {
-      alert('Create a board first!');
+      toast.error('Create a board first!');
       return;
     }
     console.log('🧪 Testing list creation...');
@@ -46,7 +47,7 @@ const MutationTester = () => {
 
   const handleCreateCard = () => {
     if (!listId) {
-      alert('Create a list first!');
+      toast.error('Create a list first!');
       return;
     }
     console.log('🧪 Testing card creation...');

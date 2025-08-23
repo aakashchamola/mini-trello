@@ -74,6 +74,17 @@
   background: #2980b9;
 }
 
+.info-text {
+  background: #e8f4fd;
+  color: #2980b9;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 1.5;
+  border-left: 4px solid #3498db;
+  margin: 12px 0;
+}
+
 @media (max-width: 600px) {
   .settings-page {
     max-width: 98vw;

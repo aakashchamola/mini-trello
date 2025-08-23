@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { FiX } from 'react-icons/fi';
+import { toast } from 'react-toastify';
 import { useCreateList } from '../../hooks/useLists';
 import './AddListForm.css';
 
@@ -30,7 +31,7 @@ const AddListForm = ({ boardId, onListAdded, onCancel }) => {
       setTitle('');
     } catch (error) {
       console.error('Failed to create list:', error);
-      alert('Failed to create list. Please try again.');
+      toast.error('Unable to create list. Please try again.');
     }
   };
 

@@ -56,7 +56,7 @@ const CreateBoardModal = ({ onClose, onBoardCreated, workspaces = [] }) => {
       const errorMessage = error.response?.data?.message || error.message || 'Failed to create board';
       
       // Show error toast
-      toast.error(errorMessage);
+      toast.error('Unable to create board. Please try again.');
       
       if (error.response?.data?.errors) {
         // Handle validation errors

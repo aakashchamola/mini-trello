@@ -1,14 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { listAPI } from '../services/api';
+import { toast } from 'react-toastify';
+import { listAPI, handleAPIError } from '../services/api';
 import { queryKeys } from './queryKeys';
 import { handleMutationError, debugMutation } from '../utils/debugUtils';
-
-// Simple toast notification functions
-const toast = {
-  success: (message) => console.log('✅ Success:', message),
-  error: (message) => console.error('❌ Error:', message),
-  info: (message) => console.log('ℹ️ Info:', message)
-};
 
 // Fetch lists for a board
 export const useBoardLists = (boardId) => {
@@ -21,7 +15,7 @@ export const useBoardLists = (boardId) => {
     enabled: !!boardId,
     onError: (error) => {
       console.error('Failed to fetch board lists:', error);
-      toast.error('Failed to load lists');
+      toast.error(handleAPIError(error));
     }
   });
 };
@@ -37,7 +31,7 @@ export const useList = (boardId, listId) => {
     enabled: !!(boardId && listId),
     onError: (error) => {
       console.error('Failed to fetch list:', error);
-      toast.error('Failed to load list');
+      toast.error(handleAPIError(error));
     }
   });
 };
@@ -110,7 +104,7 @@ export const useCreateList = () => {
       }
       
       const errorMessage = handleMutationError(error, 'List creation');
-      toast.error(errorMessage);
+      toast.error(handleAPIError(error));
     }
   });
 };
@@ -159,7 +153,7 @@ export const useUpdateList = () => {
         queryClient.setQueryData(queryKeys.boardLists(boardId), context.previousLists);
       }
       console.error('Failed to update list:', error);
-      toast.error(error.response?.data?.message || 'Failed to update list');
+      toast.error(handleAPIError(error));
     }
   });
 };
@@ -204,7 +198,7 @@ export const useDeleteList = () => {
         queryClient.setQueryData(queryKeys.boardLists(boardId), context.previousLists);
       }
       console.error('Failed to delete list:', error);
-      toast.error(error.response?.data?.message || 'Failed to delete list');
+      toast.error(handleAPIError(error));
     }
   });
 };
@@ -257,7 +251,7 @@ export const useReorderLists = () => {
         queryClient.setQueryData(queryKeys.board(boardId).concat(['with-data']), context.previousBoardData);
       }
       console.error('Failed to reorder lists:', error);
-      toast.error('Failed to reorder lists');
+      toast.error(handleAPIError(error));
     }
   });
 };

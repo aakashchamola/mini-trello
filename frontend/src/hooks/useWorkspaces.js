@@ -1,13 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { workspaceAPI } from '../services/api';
+import { toast } from 'react-toastify';
+import { workspaceAPI, handleAPIError } from '../services/api';
 import { queryKeys } from './queryKeys';
-
-// Simple toast notification functions
-const toast = {
-  success: (message) => console.log('✅ Success:', message),
-  error: (message) => console.error('❌ Error:', message),
-  info: (message) => console.log('ℹ️ Info:', message)
-};
+import { handleMutationError, debugMutation } from '../utils/debugUtils';
 
 // Fetch user's workspaces
 export const useUserWorkspaces = () => {
@@ -19,7 +14,7 @@ export const useUserWorkspaces = () => {
     },
     onError: (error) => {
       console.error('Failed to fetch user workspaces:', error);
-      toast.error('Failed to load workspaces');
+      toast.error(handleAPIError(error));
     }
   });
 };
@@ -35,7 +30,7 @@ export const useWorkspace = (workspaceId) => {
     enabled: !!workspaceId,
     onError: (error) => {
       console.error('Failed to fetch workspace:', error);
-      toast.error('Failed to load workspace');
+      toast.error(handleAPIError(error));
     }
   });
 };
@@ -51,6 +46,7 @@ export const useWorkspaceMembers = (workspaceId) => {
     enabled: !!workspaceId,
     onError: (error) => {
       console.error('Failed to fetch workspace members:', error);
+      toast.error(handleAPIError(error));
     }
   });
 };
@@ -70,7 +66,7 @@ export const useCreateWorkspace = () => {
     },
     onError: (error) => {
       console.error('Failed to create workspace:', error);
-      toast.error(error.response?.data?.message || 'Failed to create workspace');
+      toast.error(handleAPIError(error));
     }
   });
 };
@@ -94,7 +90,7 @@ export const useUpdateWorkspace = () => {
     },
     onError: (error) => {
       console.error('Failed to update workspace:', error);
-      toast.error(error.response?.data?.message || 'Failed to update workspace');
+      toast.error(handleAPIError(error));
     }
   });
 };
@@ -115,7 +111,7 @@ export const useDeleteWorkspace = () => {
     },
     onError: (error) => {
       console.error('Failed to delete workspace:', error);
-      toast.error(error.response?.data?.message || 'Failed to delete workspace');
+      toast.error(handleAPIError(error));
     }
   });
 };

@@ -1,7 +1,8 @@
 import { useContext, useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'react-toastify';
 import { AuthContext } from '../contexts/AuthContext';
-import { toast } from 'react-hot-toast';
+import { handleAPIError, API_BASE_URL } from '../services/api';
 
 const useDragDrop = (boardId, socket) => {
   const { token } = useContext(AuthContext);
@@ -10,7 +11,7 @@ const useDragDrop = (boardId, socket) => {
   // API endpoints
   const moveCard = useMutation({
     mutationFn: async ({ cardId, targetListId, targetIndex, sourceListId }) => {
-      const response = await fetch(`/api/boards/${boardId}/drag-drop/cards/${cardId}/move`, {
+      const response = await fetch(`${API_BASE_URL}/boards/${boardId}/drag-drop/cards/${cardId}/move`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -24,7 +25,8 @@ const useDragDrop = (boardId, socket) => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to move card');
+        const errorData = await response.json().catch(() => ({}));
+        throw { response: { data: errorData } };
       }
 
       return response.json();
@@ -70,7 +72,7 @@ const useDragDrop = (boardId, socket) => {
       }
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to move card');
+      toast.error(handleAPIError(error));
       // Invalidate cache to refresh from server
       queryClient.invalidateQueries(['board', boardId, 'lists']);
     }
@@ -78,7 +80,7 @@ const useDragDrop = (boardId, socket) => {
 
   const moveList = useMutation({
     mutationFn: async ({ listId, targetIndex }) => {
-      const response = await fetch(`/api/boards/${boardId}/drag-drop/lists/${listId}/move`, {
+      const response = await fetch(`${API_BASE_URL}/boards/${boardId}/drag-drop/lists/${listId}/move`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -90,7 +92,8 @@ const useDragDrop = (boardId, socket) => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to move list');
+        const errorData = await response.json().catch(() => ({}));
+        throw { response: { data: errorData } };
       }
 
       return response.json();
@@ -121,7 +124,7 @@ const useDragDrop = (boardId, socket) => {
       }
     },
     onError: (error) => {
-      toast.error(error.message || 'Failed to move list');
+      toast.error(handleAPIError(error));
       // Invalidate cache to refresh from server
       queryClient.invalidateQueries(['board', boardId, 'lists']);
     }

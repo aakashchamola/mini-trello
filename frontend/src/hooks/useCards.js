@@ -1,14 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { cardAPI, commentAPI } from '../services/api';
+import { toast } from 'react-toastify';
+import { cardAPI, commentAPI, handleAPIError } from '../services/api';
 import { queryKeys } from './queryKeys';
 import { handleMutationError, debugMutation } from '../utils/debugUtils';
-
-// Simple toast notification functions
-const toast = {
-  success: (message) => console.log('✅ Success:', message),
-  error: (message) => console.error('❌ Error:', message),
-  info: (message) => console.log('ℹ️ Info:', message)
-};
 
 // Fetch cards for a list
 export const useListCards = (boardId, listId) => {
@@ -21,7 +15,7 @@ export const useListCards = (boardId, listId) => {
     enabled: !!(boardId && listId),
     onError: (error) => {
       console.error('Failed to fetch list cards:', error);
-      toast.error('Failed to load cards');
+      toast.error(handleAPIError(error));
     }
   });
 };
@@ -37,7 +31,7 @@ export const useBoardCards = (boardId) => {
     enabled: !!boardId,
     onError: (error) => {
       console.error('Failed to fetch board cards:', error);
-      toast.error('Failed to load cards');
+      toast.error(handleAPIError(error));
     }
   });
 };
@@ -53,7 +47,7 @@ export const useCard = (boardId, listId, cardId) => {
     enabled: !!(boardId && listId && cardId),
     onError: (error) => {
       console.error('Failed to fetch card:', error);
-      toast.error('Failed to load card');
+      toast.error(handleAPIError(error));
     }
   });
 };
@@ -69,6 +63,7 @@ export const useCardComments = (boardId, listId, cardId) => {
     enabled: !!(boardId && listId && cardId),
     onError: (error) => {
       console.error('Failed to fetch card comments:', error);
+      toast.error(handleAPIError(error));
     }
   });
 };
@@ -145,7 +140,7 @@ export const useCreateCard = () => {
         queryClient.setQueryData(queryKeys.listCards(listId), context.previousCards);
       }
       console.error('Failed to create card:', error);
-      toast.error(error.response?.data?.message || 'Failed to create card');
+      toast.error(handleAPIError(error));
     }
   });
 };
@@ -215,7 +210,7 @@ export const useUpdateCard = () => {
         queryClient.setQueryData(queryKeys.card(cardId), context.previousCard);
       }
       console.error('Failed to update card:', error);
-      toast.error(error.response?.data?.message || 'Failed to update card');
+      toast.error(handleAPIError(error));
     }
   });
 };
@@ -260,7 +255,7 @@ export const useDeleteCard = () => {
         queryClient.setQueryData(queryKeys.listCards(listId), context.previousCards);
       }
       console.error('Failed to delete card:', error);
-      toast.error(error.response?.data?.message || 'Failed to delete card');
+      toast.error(handleAPIError(error));
     }
   });
 };
@@ -345,7 +340,7 @@ export const useMoveCard = () => {
         queryClient.setQueryData(queryKeys.listCards(targetListId), context.previousTargetCards);
       }
       console.error('Failed to move card:', error);
-      toast.error('Failed to move card');
+      toast.error(handleAPIError(error));
     }
   });
 };
@@ -361,6 +356,7 @@ export const useSearchCards = (boardId, searchQuery) => {
     enabled: !!(boardId && searchQuery && searchQuery.length > 2),
     onError: (error) => {
       console.error('Failed to search cards:', error);
+      toast.error(handleAPIError(error));
     }
   });
 };
@@ -386,7 +382,7 @@ export const useCreateComment = () => {
     },
     onError: (error) => {
       console.error('Failed to create comment:', error);
-      toast.error(error.response?.data?.message || 'Failed to add comment');
+      toast.error(handleAPIError(error));
     }
   });
 };
@@ -411,7 +407,7 @@ export const useUpdateComment = () => {
     },
     onError: (error) => {
       console.error('Failed to update comment:', error);
-      toast.error(error.response?.data?.message || 'Failed to update comment');
+      toast.error(handleAPIError(error));
     }
   });
 };
@@ -434,7 +430,7 @@ export const useDeleteComment = () => {
     },
     onError: (error) => {
       console.error('Failed to delete comment:', error);
-      toast.error(error.response?.data?.message || 'Failed to delete comment');
+      toast.error(handleAPIError(error));
     }
   });
 };

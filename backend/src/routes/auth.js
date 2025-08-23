@@ -284,7 +284,7 @@ router.get('/profile', authController.getProfile);
  *       500:
  *         $ref: '#/components/responses/InternalError'
  */
-router.put('/profile', authController.updateProfile);
+router.put('/profile', authenticateToken, authController.updateProfile);
 
 /**
  * @swagger
@@ -332,7 +332,64 @@ router.put('/profile', authController.updateProfile);
  *       500:
  *         $ref: '#/components/responses/InternalError'
  */
-router.put('/change-password', authController.changePassword);
+router.put('/change-password', authenticateToken, authController.changePassword);
+
+/**
+ * @swagger
+ * /api/auth/set-password:
+ *   put:
+ *     summary: Set password for Google OAuth users
+ *     description: Allow Google OAuth users to set a password for their account
+ *     tags: [Authentication]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               newPassword:
+ *                 type: string
+ *                 minLength: 6
+ *                 example: "newSecurePassword123"
+ *               confirmPassword:
+ *                 type: string
+ *                 minLength: 6
+ *                 example: "newSecurePassword123"
+ *             required:
+ *               - newPassword
+ *               - confirmPassword
+ *     responses:
+ *       200:
+ *         description: Password set successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Password set successfully. You can now log in with email and password.
+ *       400:
+ *         description: Bad request (validation error, not a Google user, or password already exists)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
+ */
+router.put('/set-password', authenticateToken, authController.setPassword);
 
 /**
  * @swagger

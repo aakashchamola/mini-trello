@@ -1,14 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { boardAPI } from '../services/api';
+import { toast } from 'react-toastify';
+import { boardAPI, handleAPIError } from '../services/api';
 import { queryKeys } from './queryKeys';
 import { handleMutationError, debugMutation } from '../utils/debugUtils';
-
-// Simple toast notification functions
-const toast = {
-  success: (message) => console.log('✅ Success:', message),
-  error: (message) => console.error('❌ Error:', message),
-  info: (message) => console.log('ℹ️ Info:', message)
-};
 
 // Fetch user's boards
 export const useUserBoards = () => {
@@ -20,7 +14,7 @@ export const useUserBoards = () => {
     },
     onError: (error) => {
       console.error('Failed to fetch user boards:', error);
-      toast.error('Failed to load boards');
+      toast.error(handleAPIError(error));
     }
   });
 };
@@ -36,7 +30,7 @@ export const useBoard = (boardId) => {
     enabled: !!boardId,
     onError: (error) => {
       console.error('Failed to fetch board:', error);
-      toast.error('Failed to load board');
+      toast.error(handleAPIError(error));
     }
   });
 };
@@ -52,6 +46,7 @@ export const useBoardMembers = (boardId) => {
     enabled: !!boardId,
     onError: (error) => {
       console.error('Failed to fetch board members:', error);
+      toast.error(handleAPIError(error));
     }
   });
 };
@@ -67,6 +62,7 @@ export const useBoardActivities = (boardId, limit = 20) => {
     enabled: !!boardId,
     onError: (error) => {
       console.error('Failed to fetch board activities:', error);
+      toast.error(handleAPIError(error));
     }
   });
 };
@@ -135,7 +131,7 @@ export const useCreateBoard = () => {
       }
       
       const errorMessage = handleMutationError(error, 'Board creation');
-      toast.error(errorMessage);
+      toast.error(handleAPIError(error));
     }
   });
 };
@@ -161,7 +157,7 @@ export const useUpdateBoard = () => {
     },
     onError: (error) => {
       console.error('Failed to update board:', error);
-      toast.error(error.response?.data?.message || 'Failed to update board');
+      toast.error(handleAPIError(error));
     }
   });
 };
@@ -184,7 +180,7 @@ export const useDeleteBoard = () => {
     },
     onError: (error) => {
       console.error('Failed to delete board:', error);
-      toast.error(error.response?.data?.message || 'Failed to delete board');
+      toast.error(handleAPIError(error));
     }
   });
 };
@@ -228,7 +224,7 @@ export const useBoardWithData = (boardId) => {
     staleTime: 30 * 1000, // 30 seconds - shorter for board data
     onError: (error) => {
       console.error('Failed to fetch board with data:', error);
-      toast.error('Failed to load board');
+      toast.error(handleAPIError(error));
     }
   });
 };
@@ -264,7 +260,7 @@ export const useToggleStarBoard = () => {
         queryClient.setQueryData(queryKeys.userBoards, context.previousBoards);
       }
       console.error('Failed to toggle star:', error);
-      toast.error('Failed to update board');
+      toast.error(handleAPIError(error));
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.userBoards });

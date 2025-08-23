@@ -56,7 +56,7 @@ const AddCardForm = ({ listId, boardId, onCardAdded, onCancel }) => {
       }
     } catch (error) {
       console.error('Failed to create card:', error);
-      setError(error.response?.data?.message || error.message || 'Failed to create card. Please try again.');
+      setError('Unable to create card. Please try again.');
     }
   };
 

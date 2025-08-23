@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FiUsers, FiPlus, FiTrash2, FiUser, FiEye, FiEdit } from 'react-icons/fi';
-import { boardAPI } from '../../services/api';
+import { boardAPI, handleAPIError } from '../../services/api';
 import { toast } from 'react-toastify';
 import './BoardMemberManager.css';
 
@@ -64,7 +64,7 @@ const BoardMemberManager = ({ boardId, members = [], onMembersUpdate, currentUse
       }
     } catch (error) {
       console.error('Error removing member:', error);
-      toast.error('Failed to remove member');
+      toast.error(handleAPIError(error));
     }
   };
 
@@ -82,7 +82,7 @@ const BoardMemberManager = ({ boardId, members = [], onMembersUpdate, currentUse
       }
     } catch (error) {
       console.error('Error updating role:', error);
-      toast.error('Failed to update member role');
+      toast.error(handleAPIError(error));
     }
   };
 

@@ -2,6 +2,7 @@
 // Handles user registration, login, logout, and token refresh
 
 const User = require('../models/User');
+const Joi = require('joi');
 const { generateTokenPair, verifyRefreshToken } = require('../utils/jwt');
 const googleAuthService = require('../services/googleAuthService');
 const { 
@@ -205,14 +206,32 @@ const updateProfile = async (req, res) => {
       });
     }
     
-    // If username is being updated, verify current password
-    if (username && currentPassword) {
-      const isCurrentPasswordValid = await user.comparePassword(currentPassword);
-      if (!isCurrentPasswordValid) {
-        return res.status(400).json({
-          error: 'Invalid password',
-          message: 'Current password is incorrect'
-        });
+    // If username is being updated, handle password verification based on provider
+    if (username) {
+      if (user.provider === 'local') {
+        // Local users must provide current password to change username
+        if (!currentPassword) {
+          return res.status(400).json({
+            error: 'Password required',
+            message: 'Current password is required to change username'
+          });
+        }
+        
+        const isCurrentPasswordValid = await user.comparePassword(currentPassword);
+        if (!isCurrentPasswordValid) {
+          return res.status(400).json({
+            error: 'Invalid password',
+            message: 'Current password is incorrect'
+          });
+        }
+      } else if (user.provider === 'google') {
+        // Google OAuth users can change username without password verification
+        // But if they want to set a password for their account, they can provide one
+        if (currentPassword) {
+          // This means they want to add a password to their Google account
+          // We'll allow this but won't verify against any existing password
+          console.log('Google user is setting a password for their account');
+        }
       }
     }
     
@@ -477,6 +496,80 @@ const googleRegister = async (req, res) => {
   }
 };
 
+// Set password for Google OAuth users
+const setPassword = async (req, res) => {
+  try {
+    // For Google users setting password, we use a modified validation
+    const setPasswordSchema = Joi.object({
+      newPassword: Joi.string()
+        .min(6)
+        .required()
+        .messages({
+          'string.min': 'Password must be at least 6 characters long',
+          'any.required': 'New password is required'
+        }),
+      confirmPassword: Joi.string()
+        .valid(Joi.ref('newPassword'))
+        .required()
+        .messages({
+          'any.only': 'Passwords do not match',
+          'any.required': 'Password confirmation is required'
+        })
+    });
+    
+    // Validate input data
+    const { error, value } = setPasswordSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: error.details[0].message
+      });
+    }
+    
+    const { newPassword } = value;
+    
+    // Get user
+    const user = await User.findByPk(req.userId);
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
+        message: 'User not found'
+      });
+    }
+    
+    // Only allow Google OAuth users to set password
+    if (user.provider !== 'google') {
+      return res.status(400).json({
+        error: 'Invalid operation',
+        message: 'Only Google OAuth users can set a new password'
+      });
+    }
+    
+    // Check if user already has a password (shouldn't happen, but just in case)
+    if (user.password) {
+      return res.status(400).json({
+        error: 'Password already exists',
+        message: 'You already have a password set. Use change password instead.'
+      });
+    }
+    
+    // Set the new password
+    user.password = newPassword;
+    await user.save();
+    
+    res.json({
+      message: 'Password set successfully. You can now log in with email and password.'
+    });
+    
+  } catch (error) {
+    console.error('Set password error:', error);
+    res.status(500).json({
+      error: 'Server error',
+      message: 'Failed to set password'
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -484,6 +577,7 @@ module.exports = {
   getProfile,
   updateProfile,
   changePassword,
+  setPassword,
   logout,
   googleLogin,
   googleRegister

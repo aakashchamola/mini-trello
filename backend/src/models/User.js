@@ -114,8 +114,12 @@ User.prototype.comparePassword = async function(candidatePassword) {
 // Instance method to get user data without password
 User.prototype.toSafeJSON = function() {
   const values = Object.assign({}, this.get());
+  const hasPassword = !!values.password;
   delete values.password;
-  return values;
+  return {
+    ...values,
+    hasPassword
+  };
 };
 
 module.exports = User;
