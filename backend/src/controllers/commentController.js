@@ -120,7 +120,7 @@ const commentController = {
           as: 'author',
           attributes: ['id', 'username', 'email', 'first_name', 'last_name', 'avatar_url']
         }],
-        order: [['createdAt', 'ASC']]
+        order: [['createdAt', 'DESC']] // Newest comments first
       });
 
       res.json({

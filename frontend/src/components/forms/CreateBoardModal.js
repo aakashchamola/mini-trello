@@ -76,8 +76,14 @@ const CreateBoardModal = ({ onClose, onBoardCreated, workspaces = [] }) => {
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      onClose();
+    }
+  };
+
   return (
-    <div className="modal-backdrop" onClick={handleBackdropClick}>
+    <div className="modal-backdrop" onClick={handleBackdropClick} onKeyDown={handleKeyDown} tabIndex={0}>
       <div className="create-board-modal">
         <div className="modal-header">
           <h2>Create Board</h2>

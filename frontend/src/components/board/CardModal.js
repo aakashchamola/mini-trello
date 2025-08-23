@@ -1,12 +1,65 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FiX, FiEdit, FiMessageCircle } from 'react-icons/fi';
+import { FiX, FiEdit, FiMessageCircle, FiLoader } from 'react-icons/fi';
+import Avatar from 'react-avatar';
 import { commentAPI, handleAPIError } from '../../services/api';
 import { useUpdateCard } from '../../hooks/useCards';
 import socketService from '../../services/socket';
 import { toast } from 'react-toastify';
 import './CardModal.css';
 
-// Helper function to safely format dates
+// Helper function to format relative timestamps
+const formatRelativeTime = (dateString) => {
+  if (!dateString) return 'Invalid Date';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Invalid Date';
+    
+    const now = new Date();
+    const diffInMs = now - date;
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+    if (diffInMinutes < 1) {
+      return 'Just now';
+    } else if (diffInMinutes < 60) {
+      return `${diffInMinutes} minute${diffInMinutes === 1 ? '' : 's'} ago`;
+    } else if (diffInHours < 24) {
+      return `${diffInHours} hour${diffInHours === 1 ? '' : 's'} ago`;
+    } else if (diffInDays < 7) {
+      return `${diffInDays} day${diffInDays === 1 ? '' : 's'} ago`;
+    } else {
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    }
+  } catch (error) {
+    return 'Invalid Date';
+  }
+};
+
+// Helper function to get user's display name
+const getDisplayName = (author) => {
+  if (author?.first_name && author?.last_name) {
+    return `${author.first_name} ${author.last_name}`;
+  }
+  return author?.username || 'Unknown User';
+};
+
+// Helper function to get user's initials for avatar
+const getInitials = (author) => {
+  if (author?.first_name && author?.last_name) {
+    return `${author.first_name[0]}${author.last_name[0]}`.toUpperCase();
+  }
+  if (author?.username) {
+    return author.username.slice(0, 2).toUpperCase();
+  }
+  return 'U';
+};
+
+// Helper function to safely format dates (legacy - keeping for other uses)
 const formatDate = (dateString) => {
   if (!dateString) return 'Invalid Date';
   try {
@@ -75,7 +128,7 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
           }
           
           console.log('Adding new comment from socket event');
-          return [...prev, data.comment];
+          return [data.comment, ...prev]; // Add new comment at the beginning since it's the newest
         });
       }
     };
@@ -126,6 +179,18 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
       onClose();
     }
   };
+
+  // Add global ESC listener to ensure ESC always closes the modal
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleGlobalKeyDown);
+    return () => document.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [onClose]);
 
   const handleSave = async () => {
     if (!title.trim()) {
@@ -215,8 +280,8 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
     try {
       console.log('Adding comment to card:', card.id);
       
-      // Optimistic update - add temporary comment immediately
-      setComments(prev => [...prev, tempComment]);
+      // Optimistic update - add temporary comment immediately at the beginning (newest first)
+      setComments(prev => [tempComment, ...prev]);
       setNewComment(''); // Clear input immediately for better UX
       
       const response = await commentAPI.create(boardId, listId, card.id, {
@@ -270,9 +335,12 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
                     if (e.key === 'Enter') {
                       handleSave();
                     } else if (e.key === 'Escape') {
+                      // Reset values and exit edit mode
                       setTitle(card.title);
                       setDescription(card.description || '');
                       setIsEditing(false);
+                      // Also close the modal
+                      onClose();
                     }
                   }}
                 />
@@ -340,7 +408,7 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
                 <textarea
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Write a comment..."
+                  placeholder="Share your thoughts, ask questions, or provide updates..."
                   className="comment-input"
                   rows="3"
                   disabled={commentLoading}
@@ -350,26 +418,41 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
                   onClick={handleAddComment}
                   disabled={commentLoading || !newComment.trim()}
                 >
-                  {commentLoading ? 'Adding...' : 'Comment'}
+                  {commentLoading ? <FiLoader className="loading-spinner" /> : <FiMessageCircle />}
+                  {commentLoading ? 'Adding Comment...' : 'Add Comment'}
                 </button>
               </div>
               <div className="comments-list">
                 {comments.length === 0 ? (
-                  <p className="no-comments">No comments yet</p>
+                  <div className="no-comments">
+                    <FiMessageCircle />
+                    <p>No comments yet. Be the first to comment!</p>
+                  </div>
                 ) : (
                   comments
                     .filter(comment => comment && comment.id) // Filter out invalid comments
+                    .sort((a, b) => new Date(b.created_at || b.createdAt) - new Date(a.created_at || a.createdAt)) // Sort latest first
                     .map(comment => (
-                      <div key={comment.id} className="comment-item">
-                        <div className="comment-header">
-                          <span className="comment-author">
-                            {comment.author?.username || comment.authorName || 'Unknown User'}
-                          </span>
-                          <span className="comment-date">
-                            {formatDate(comment.createdAt)}
-                          </span>
+                      <div key={comment.id} className={`comment-item ${comment.isOptimistic ? 'optimistic' : ''}`}>
+                        <div className="comment-avatar">
+                          <Avatar
+                            name={getDisplayName(comment.author)}
+                            src={comment.author?.avatar_url}
+                            size="24"
+                            round={true}
+                          />
                         </div>
-                        <div className="comment-content">{comment.content || ''}</div>
+                        <div className="comment-body">
+                          <div className="comment-header">
+                            <span className="comment-author">
+                              {getDisplayName(comment.author)}
+                            </span>
+                            <span className="comment-date" title={new Date(comment.createdAt).toLocaleString()}>
+                              {formatRelativeTime(comment.createdAt)}
+                            </span>
+                          </div>
+                          <div className="comment-content">{comment.content || ''}</div>
+                        </div>
                       </div>
                     ))
                 )}
@@ -377,8 +460,8 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
             </div>
           </div>
 
-          <div className="card-sidebar">
-            {/* <div className="card-actions">
+          {/* <div className="card-sidebar">
+            <div className="card-actions">
               <h4>Actions</h4>
               <button className="action-btn">
                 <FiUser />
@@ -388,7 +471,7 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
                 <FiCalendar />
                 Set Due Date
               </button>
-            </div> */}
+            </div>
 
             <div className="card-info">
               <h4>Card Info</h4>
@@ -406,7 +489,7 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
               )}
 
             </div>
-          </div>
+          </div> */}
         </div>
 
         <div className="modal-footer">

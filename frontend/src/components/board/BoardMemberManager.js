@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FiUsers, FiPlus, FiTrash2, FiUser, FiEye, FiEdit } from 'react-icons/fi';
 import { boardAPI, handleAPIError } from '../../services/api';
 import { toast } from 'react-toastify';
@@ -15,6 +15,22 @@ const BoardMemberManager = ({ boardId, members = [], onMembersUpdate, currentUse
   const isOwner = boardOwner?.id === currentUser?.id || boardOwner === currentUser?.id;
   const isAdmin = currentUserMember?.role === 'admin';
   const canManageMembers = isOwner || isAdmin;
+
+  // Handle ESC key to close add member form
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && showAddForm) {
+        setShowAddForm(false);
+        setIdentifier('');
+        setRole('editor');
+      }
+    };
+
+    if (showAddForm) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [showAddForm]);
 
   const handleAddMember = async () => {
     if (!identifier.trim()) {

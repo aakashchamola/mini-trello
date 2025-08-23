@@ -13,8 +13,6 @@ import {
   useBoardMembers, 
   useBoardActivities,
   useCreateList,
-  useUpdateList,
-  useDeleteList,
   useReorderLists,
   useCreateCard,
   useUpdateCard,
@@ -209,6 +207,41 @@ const BoardPageNew = () => {
     };
   }, [boardId, queryClient]);
 
+  // Global ESC handling to navigate back to dashboard when no modals are open
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        // Check if any modals are open
+        const hasOpenModals = modals.cardDetails || showMemberModal;
+        
+        // Check if any forms are open (like add list, add card forms)
+        const hasOpenForms = document.querySelector('.add-list-form, .add-card-form');
+        
+        // If no modals or forms are open, navigate back to dashboard
+        if (!hasOpenModals && !hasOpenForms) {
+          navigate('/dashboard');
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleGlobalKeyDown);
+    return () => document.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [navigate, modals.cardDetails, showMemberModal]);
+
+  // Handle ESC key for member modal
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && showMemberModal) {
+        setShowMemberModal(false);
+      }
+    };
+
+    if (showMemberModal) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [showMemberModal]);
+
   // Handle board not found
   const shouldRedirect = boardError?.response?.status === 404;
   
@@ -341,7 +374,7 @@ const BoardPageNew = () => {
         }
         
         // Extract the actual list ID from the prefixed draggableId
-        const listId = draggableId.replace('list-', '');
+        const listId = draggableId.replace('list-', ''); // eslint-disable-line no-unused-vars
         
         // Handle list reordering
         const sourceIndex = source.index;

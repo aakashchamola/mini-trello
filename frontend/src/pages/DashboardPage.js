@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FiPlus,
@@ -83,6 +83,20 @@ const DashboardPage = () => {
       console.error("Failed to toggle star:", error);
     }
   };
+
+  // Handle ESC key to close create board modal
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && showCreateModal) {
+        setShowCreateModal(false);
+      }
+    };
+
+    if (showCreateModal) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [showCreateModal]);
 
   // Loading state
   if (boardsLoading || workspacesLoading) {
