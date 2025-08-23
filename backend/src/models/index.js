@@ -11,6 +11,7 @@ const Comment = require('./Comment');
 const Workspace = require('./Workspace');
 const WorkspaceMember = require('./WorkspaceMember');
 const Activity = require('./Activity');
+const Mention = require('./Mention');
 
 // Define model associations
 User.hasMany(Board, {
@@ -194,6 +195,62 @@ Activity.belongsTo(User, {
   as: 'user'
 });
 
+// Mention associations
+Comment.hasMany(Mention, {
+  foreignKey: 'commentId',
+  as: 'mentions',
+  onDelete: 'CASCADE'
+});
+
+Mention.belongsTo(Comment, {
+  foreignKey: 'commentId',
+  as: 'comment'
+});
+
+User.hasMany(Mention, {
+  foreignKey: 'mentionedUserId',
+  as: 'receivedMentions',
+  onDelete: 'CASCADE'
+});
+
+Mention.belongsTo(User, {
+  foreignKey: 'mentionedUserId',
+  as: 'mentionedUser'
+});
+
+User.hasMany(Mention, {
+  foreignKey: 'mentionedByUserId',
+  as: 'sentMentions',
+  onDelete: 'CASCADE'
+});
+
+Mention.belongsTo(User, {
+  foreignKey: 'mentionedByUserId',
+  as: 'mentionedByUser'
+});
+
+Card.hasMany(Mention, {
+  foreignKey: 'cardId',
+  as: 'mentions',
+  onDelete: 'CASCADE'
+});
+
+Mention.belongsTo(Card, {
+  foreignKey: 'cardId',
+  as: 'card'
+});
+
+Board.hasMany(Mention, {
+  foreignKey: 'boardId',
+  as: 'mentions',
+  onDelete: 'CASCADE'
+});
+
+Mention.belongsTo(Board, {
+  foreignKey: 'boardId',
+  as: 'board'
+});
+
 // Initialize all models
 const models = {
   User,
@@ -205,6 +262,7 @@ const models = {
   Workspace,
   WorkspaceMember,
   Activity,
+  Mention,
   sequelize
 };
 

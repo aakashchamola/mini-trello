@@ -86,7 +86,8 @@ export const SOCKET_EVENTS = {
   COMMENT_UPDATED: 'comment:updated',
   COMMENT_DELETED: 'comment:deleted',
   USER_TYPING: 'user:typing',
-  USER_PRESENCE: 'user:presence'
+  USER_PRESENCE: 'user:presence',
+  MENTION_CREATED: 'mention:created'
 };
 
 // Local Storage Keys

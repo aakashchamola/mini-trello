@@ -3,6 +3,8 @@ import { FiClock, FiMessageCircle, FiPaperclip, FiUser, FiMoreHorizontal, FiEdit
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { useDeleteCard } from '../../hooks/useCards';
+import { useCardMentionCount } from '../../hooks/useMentions';
+import MentionBubble from '../common/MentionBubble';
 import './CardItem.css';
 
 dayjs.extend(relativeTime);
@@ -11,6 +13,9 @@ const CardItem = ({ card, onClick, onUpdated, onDeleted, boardId, listId }) => {
   const [showCardMenu, setShowCardMenu] = useState(false);
   const cardMenuRef = useRef(null);
   const cardMenuBtnRef = useRef(null);
+  
+  // Get mention count for this card
+  const { data: mentionCount = 0 } = useCardMentionCount(card.id);
   // Close dropdown on outside click
   useEffect(() => {
     function handleClickOutside(event) {
@@ -77,6 +82,9 @@ const CardItem = ({ card, onClick, onUpdated, onDeleted, boardId, listId }) => {
 
   return (
     <div className="card-item" onClick={onClick}>
+      {/* Mention Bubble */}
+      <MentionBubble count={mentionCount} />
+      
       {/* Card Menu */}
       <div className="card-menu-container">
         <button 

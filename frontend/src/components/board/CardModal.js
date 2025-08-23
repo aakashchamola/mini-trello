@@ -3,8 +3,11 @@ import { FiX, FiEdit, FiMessageCircle, FiLoader } from 'react-icons/fi';
 import Avatar from 'react-avatar';
 import { commentAPI, handleAPIError } from '../../services/api';
 import { useUpdateCard } from '../../hooks/useCards';
+import { useBoardMembers } from '../../hooks/useBoards';
+import { useCardMentionCount, useMarkMentionsAsRead } from '../../hooks/useMentions';
 import socketService from '../../services/socket';
 import { toast } from 'react-toastify';
+import MentionInput from '../common/MentionInput';
 import './CardModal.css';
 
 // Helper function to format relative timestamps
@@ -83,6 +86,15 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
   const saveInProgress = useRef(false); // Prevent duplicate saves
 
   const updateCardMutation = useUpdateCard();
+  
+  // Fetch board members for mentions
+  const { data: boardMembers = [] } = useBoardMembers(boardId);
+  
+  // Get mention count for this card
+  const { data: mentionCount = 0 } = useCardMentionCount(card.id);
+  
+  // Mark mentions as read mutation
+  const markMentionsAsReadMutation = useMarkMentionsAsRead();
 
   const fetchComments = async () => {
     try {
@@ -101,6 +113,11 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
 
   useEffect(() => {
     fetchComments();
+    
+    // Mark mentions as read when card modal opens
+    if (mentionCount > 0) {
+      markMentionsAsReadMutation.mutate(card.id);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardId, listId, card.id]);
 
@@ -405,13 +422,14 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
                 Comments ({comments.length})
               </h3>
               <div className="comment-form">
-                <textarea
+                <MentionInput
                   value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Share your thoughts, ask questions, or provide updates..."
-                  className="comment-input"
-                  rows="3"
+                  onChange={setNewComment}
+                  onSubmit={handleAddComment}
+                  boardMembers={boardMembers}
+                  placeholder="Share your thoughts, ask questions, mention @username..."
                   disabled={commentLoading}
+                  loading={commentLoading}
                 />
                 <button 
                   className="comment-btn" 

@@ -4,6 +4,9 @@ import { toast } from 'react-toastify';
 import { isTokenExpired, refreshAuthToken, isValidTokenFormat } from './api';
 
 class SocketService {
+  onMentionCreated(callback) {
+    this.on(SOCKET_EVENTS.MENTION_CREATED, callback);
+  }
   constructor() {
     this.socket = null;
     this.isConnected = false;

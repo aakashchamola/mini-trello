@@ -2,6 +2,7 @@ const Comment = require('../models/Comment');
 const Card = require('../models/Card');
 const User = require('../models/User');
 const { createCommentSchema, updateCommentSchema } = require('../validation/commentValidation');
+const { parseMentions, findMentionedUsers, createMentions } = require('../utils/mentionUtils');
 
 const commentController = {
   // Create a new comment on a card
@@ -47,6 +48,24 @@ const commentController = {
         userId: req.user.id
       });
 
+      // Handle mentions
+      const mentionedUsernames = parseMentions(value.content);
+      let mentionedUsers = [];
+      let mentions = [];
+      
+      if (mentionedUsernames.length > 0) {
+        mentionedUsers = await findMentionedUsers(mentionedUsernames, parseInt(boardId));
+        if (mentionedUsers.length > 0) {
+          mentions = await createMentions(
+            comment.id, 
+            parseInt(cardId), 
+            parseInt(boardId), 
+            req.user.id, 
+            mentionedUsers
+          );
+        }
+      }
+
       // Fetch the comment with author information
       const commentWithAuthor = await Comment.findByPk(comment.id, {
         include: [{
@@ -67,6 +86,32 @@ const commentController = {
           action: 'created',
           timestamp: new Date().toISOString()
         });
+
+        // Emit mention notifications to mentioned users
+        if (mentions.length > 0) {
+          mentionedUsers.forEach(mentionedUser => {
+            // Don't notify the user who created the mention
+            if (mentionedUser.id !== req.user.id) {
+              req.io.to(`user-${mentionedUser.id}`).emit('mention:created', {
+                mention: {
+                  id: mentions.find(m => m.mentionedUserId === mentionedUser.id)?.id,
+                  cardId: parseInt(cardId),
+                  cardTitle: card.title,
+                  boardId: parseInt(boardId),
+                  boardTitle: board.title,
+                  commentContent: value.content,
+                  mentionedBy: {
+                    id: req.user.id,
+                    username: req.user.username,
+                    first_name: req.user.first_name,
+                    last_name: req.user.last_name
+                  }
+                },
+                timestamp: new Date().toISOString()
+              });
+            }
+          });
+        }
       } else {
         console.log('req.io is not available for comment creation');
       }

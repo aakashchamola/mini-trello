@@ -269,6 +269,13 @@ export const invitationAPI = {
   respond: (boardId, invitationId, data) => api.put(`/boards/${boardId}/invitations/${invitationId}/respond`, data)
 };
 
+// Mention API
+export const mentionAPI = {
+  getUnreadMentions: () => api.get('/mentions/unread'),
+  getCardMentionCount: (cardId) => api.get(`/mentions/card/${cardId}/count`),
+  markCardMentionsAsRead: (cardId) => api.post(`/mentions/card/${cardId}/mark-read`)
+};
+
 // Generic API error handler
 export const handleAPIError = (error) => {
   if (error.response) {

@@ -30,6 +30,7 @@ const commentRoutes = require('./src/routes/comments');
 const workspaceRoutes = require('./src/routes/workspaces');
 const realtimeRoutes = require('./src/routes/realtime');
 const dragDropRoutes = require('./src/routes/dragDrop');
+const mentionRoutes = require('./src/routes/mentions');
 
 // Create Express application
 const app = express();
@@ -241,6 +242,9 @@ app.use('/api',
 
 // Workspace management routes
 app.use('/api', workspaceRoutes);
+
+// Mention management routes
+app.use('/api/mentions', mentionRoutes);
 
 // Real-time routes
 app.use('/api', realtimeRoutes);

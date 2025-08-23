@@ -138,6 +138,72 @@ const BoardPageNew = () => {
       queryClient.invalidateQueries({ queryKey: ['boards', boardId, 'activities'] });
     };
 
+    // Handle real-time comment events for counter updates
+    const handleCommentCreated = (data) => {
+      console.log('💬 Socket event - Comment created:', data);
+      if (data.cardId) {
+        // Update card comment count in board cache
+        queryClient.setQueryData(['boards', boardId, 'with-data'], (oldData) => {
+          if (!oldData) return oldData;
+          
+          return {
+            ...oldData,
+            lists: oldData.lists?.map(list => ({
+              ...list,
+              cards: list.cards?.map(card => 
+                card.id === data.cardId 
+                  ? { ...card, commentCount: (card.commentCount || 0) + 1 }
+                  : card
+              )
+            }))
+          };
+        });
+        
+        // Also invalidate comment count query for mention bubble updates
+        queryClient.invalidateQueries({ queryKey: ['mentions', 'card', data.cardId, 'count'] });
+      }
+      
+      // Invalidate board activities
+      queryClient.invalidateQueries({ queryKey: ['boards', boardId, 'activities'] });
+    };
+
+    const handleCommentDeleted = (data) => {
+      console.log('🗑️ Socket event - Comment deleted:', data);
+      if (data.cardId) {
+        // Update card comment count in board cache
+        queryClient.setQueryData(['boards', boardId, 'with-data'], (oldData) => {
+          if (!oldData) return oldData;
+          
+          return {
+            ...oldData,
+            lists: oldData.lists?.map(list => ({
+              ...list,
+              cards: list.cards?.map(card => 
+                card.id === data.cardId 
+                  ? { ...card, commentCount: Math.max((card.commentCount || 0) - 1, 0) }
+                  : card
+              )
+            }))
+          };
+        });
+        
+        // Also invalidate comment count query for mention bubble updates
+        queryClient.invalidateQueries({ queryKey: ['mentions', 'card', data.cardId, 'count'] });
+      }
+      
+      // Invalidate board activities
+      queryClient.invalidateQueries({ queryKey: ['boards', boardId, 'activities'] });
+    };
+
+    // Handle real-time mention events for mention bubble updates
+    const handleMentionCreated = (data) => {
+      console.log('🔔 Socket event - Mention created:', data);
+      if (data.mention?.cardId) {
+        // Invalidate mention count query to update mention bubble
+        queryClient.invalidateQueries({ queryKey: ['mentions', 'card', data.mention.cardId, 'count'] });
+      }
+    };
+
     const handleListCreated = (data) => {
       console.log('📝 Socket event - List created:', data);
       // Invalidate the board with data query since it contains all lists and cards
@@ -184,6 +250,11 @@ const BoardPageNew = () => {
     socketService.onListCreated(handleListCreated);
     socketService.onListUpdated(handleListUpdated);
     socketService.onListDeleted(handleListDeleted);
+    
+    // Register comment and mention event listeners for real-time counters
+    socketService.on('comment:created', handleCommentCreated);
+    socketService.on('comment:deleted', handleCommentDeleted);
+    socketService.on('mention:created', handleMentionCreated);
 
     // Log socket connection status
     const checkConnection = setInterval(() => {
@@ -203,6 +274,9 @@ const BoardPageNew = () => {
       socketService.removeAllListeners('list:created');
       socketService.removeAllListeners('list:updated');
       socketService.removeAllListeners('list:deleted');
+      socketService.removeAllListeners('comment:created');
+      socketService.removeAllListeners('comment:deleted');
+      socketService.removeAllListeners('mention:created');
       socketService.leaveBoard(boardId);
     };
   }, [boardId, queryClient]);

@@ -30,4 +30,9 @@ export const queryKeys = {
   // Comments
   comments: ['comments'],
   comment: (commentId) => ['comments', commentId],
+  
+  // Mentions
+  mentions: ['mentions'],
+  unreadMentions: ['mentions', 'unread'],
+  cardMentionCount: (cardId) => ['mentions', 'card', cardId, 'count'],
 };
