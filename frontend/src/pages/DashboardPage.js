@@ -1,294 +1,229 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { 
-  FiPlus, 
-  FiStar, 
-  FiClock, 
-  FiUsers, 
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  FiPlus,
+  FiStar,
+  FiClock,
+  FiUsers,
   FiTrello,
   FiSearch,
-  FiFilter,
   FiGrid,
-  FiList
-} from 'react-icons/fi';
-import { useAuth } from '../contexts/AuthContext';
-import { useApp } from '../contexts/AppContext';
-import { boardAPI, workspaceAPI } from '../services/api';
-import LoadingSpinner from '../components/common/LoadingSpinner';
-import BoardCard from '../components/board/BoardCard';
-import CreateBoardModal from '../components/forms/CreateBoardModal';
-import './Dashboard.css';
+  FiList,
+} from "react-icons/fi";
+import { useAuth } from "../contexts/AuthContext";
+import { useUserBoards, useUserWorkspaces, useToggleStarBoard } from "../hooks";
+import LoadingSpinner from "../components/common/LoadingSpinner";
+import BoardCard from "../components/board/BoardCard";
+import CreateBoardModal from "../components/forms/CreateBoardModal";
+import "./Dashboard.css";
 
 const DashboardPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { setLoading } = useApp();
-  
-  const [boards, setBoards] = useState([]);
-  const [workspaces, setWorkspaces] = useState([]);
-  const [recentBoards, setRecentBoards] = useState([]);
-  const [starredBoards, setStarredBoards] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState('grid');
-  const [filterType, setFilterType] = useState('all');
+
+  // React Query hooks
+  const {
+    data: boards = [],
+    isLoading: boardsLoading,
+    error: boardsError,
+  } = useUserBoards();
+
+  const { data: workspaces = [], isLoading: workspacesLoading } =
+    useUserWorkspaces();
+
+  const toggleStarMutation = useToggleStarBoard();
+
+  // Local UI state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState("grid");
+  const [filterType, setFilterType] = useState("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
+  // Derived data
+  const recentBoards = boards.slice(0, 8);
+  const starredBoards = boards.filter((board) => board.isStarred);
+  const filteredBoards = getFilteredBoards();
 
-  const fetchDashboardData = async () => {
-    try {
-      setIsLoading(true);
-      
-      // First try to fetch boards and workspaces
-      try {
-        const [boardsRes, workspacesRes] = await Promise.all([
-          boardAPI.getUserBoards(),
-          workspaceAPI.getUserWorkspaces()
-        ]);
+  function getFilteredBoards() {
+    let filtered = boards;
 
-        const allBoards = boardsRes.data?.boards || boardsRes.data?.data || [];
-        setBoards(allBoards);
-        setWorkspaces(workspacesRes.data?.workspaces || workspacesRes.data?.data || []);
-        
-        // Separate boards by type
-        setRecentBoards(allBoards.slice(0, 8)); // Show 8 most recent
-        setStarredBoards(allBoards.filter(board => board.isStarred));
-      } catch (apiError) {
-        console.error('API Error:', apiError);
-        // If API fails, show demo data for UI testing
-        const demoBoards = [
-          {
-            id: 1,
-            title: 'Sample Project Board',
-            description: 'A demo board for testing',
-            color: '#0079bf',
-            isStarred: true,
-            createdAt: new Date().toISOString()
-          },
-          {
-            id: 2,
-            title: 'Marketing Campaign',
-            description: 'Track marketing tasks',
-            color: '#d29034',
-            isStarred: false,
-            createdAt: new Date().toISOString()
-          }
-        ];
-        setBoards(demoBoards);
-        setRecentBoards(demoBoards);
-        setStarredBoards(demoBoards.filter(board => board.isStarred));
-        setWorkspaces([]);
-      }
-    } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
-    } finally {
-      setIsLoading(false);
+    // Apply search filter
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(
+        (board) =>
+          board.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          board.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
     }
-  };
+
+    // Apply type filter
+    switch (filterType) {
+      case "starred":
+        filtered = filtered.filter((board) => board.isStarred);
+        break;
+      case "recent":
+        filtered = filtered.slice(0, 10);
+        break;
+      default:
+        break;
+    }
+
+    return filtered;
+  }
 
   const handleBoardCreated = (newBoard) => {
-    setBoards(prev => [newBoard, ...prev]);
-    setRecentBoards(prev => [newBoard, ...prev.slice(0, 7)]);
     setShowCreateModal(false);
-    navigate(`/board/${newBoard.id}`);
+    navigate(`/boards/${newBoard.id}`);
   };
 
   const handleStarToggle = async (boardId, isStarred) => {
     try {
-      await boardAPI.toggleStar(boardId);
-      
-      // Update local state
-      setBoards(prev => prev.map(board => 
-        board.id === boardId ? { ...board, isStarred: !isStarred } : board
-      ));
-      
-      if (isStarred) {
-        setStarredBoards(prev => prev.filter(board => board.id !== boardId));
-      } else {
-        const boardToStar = boards.find(board => board.id === boardId);
-        if (boardToStar) {
-          setStarredBoards(prev => [...prev, { ...boardToStar, isStarred: true }]);
-        }
-      }
+      await toggleStarMutation.mutateAsync({ boardId, isStarred });
     } catch (error) {
-      console.error('Failed to toggle star:', error);
+      console.error("Failed to toggle star:", error);
     }
   };
 
-  const filteredBoards = () => {
-    let result = boards;
-    
-    // Apply filter type
-    switch (filterType) {
-      case 'starred':
-        result = starredBoards;
-        break;
-      case 'recent':
-        result = recentBoards;
-        break;
-      default:
-        result = boards;
-    }
-    
-    // Apply search filter
-    if (searchQuery.trim()) {
-      result = result.filter(board =>
-        board.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        board.description?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-    
-    return result;
-  };
+  // Loading state
+  if (boardsLoading || workspacesLoading) {
+    return (
+      <div className="dashboard-loading">
+        <LoadingSpinner />
+        <p>Loading your boards...</p>
+      </div>
+    );
+  }
 
-  if (isLoading) {
-    return <LoadingSpinner size="large" message="Loading your dashboard..." />;
+  // Error state with fallback
+  if (boardsError) {
+    console.error("Dashboard error:", boardsError);
   }
 
   return (
-    <div className="dashboard">
+    <div className="dashboard-page">
+      {/* Header Section */}
       <div className="dashboard-header">
-        <div className="header-content">
-          <h1>Welcome back, {user?.username}!</h1>
-          <p>Here's what's happening with your boards and workspaces</p>
+        <div className="header-left">
+          <h1>
+            <FiTrello className="dashboard-icon" />
+            Welcome back, {user?.firstName || user?.name || "User"}!
+          </h1>
+          <p className="dashboard-subtitle">
+            You have {boards.length} board{boards.length !== 1 ? "s" : ""}
+            {workspaces.length > 0 &&
+              ` across ${workspaces.length} workspace${
+                workspaces.length !== 1 ? "s" : ""
+              }`}
+          </p>
         </div>
-        
-        <div className="header-actions">
-          <button 
-            className="create-board-btn"
-            onClick={() => setShowCreateModal(true)}
-          >
-            <FiPlus />
-            Create Board
-          </button>
-        </div>
+        <button
+          className="btn btn-primary create-board-btn"
+          onClick={() => setShowCreateModal(true)}
+        >
+          <FiPlus /> Create New Board
+        </button>
       </div>
 
-      {/* Quick Stats */}
-      <div className="dashboard-stats">
-        <div className="stat-card">
-          <div className="stat-icon">
-            <FiTrello />
-          </div>
-          <div className="stat-content">
-            <h3>{boards.length}</h3>
-            <p>Total Boards</p>
-          </div>
-        </div>
-        
-        <div className="stat-card">
-          <div className="stat-icon">
-            <FiUsers />
-          </div>
-          <div className="stat-content">
-            <h3>{workspaces.length}</h3>
-            <p>Workspaces</p>
-          </div>
-        </div>
-        
-        <div className="stat-card">
-          <div className="stat-icon">
-            <FiStar />
-          </div>
-          <div className="stat-content">
-            <h3>{starredBoards.length}</h3>
-            <p>Starred Boards</p>
-          </div>
-        </div>
-        
-        <div className="stat-card">
-          <div className="stat-icon">
-            <FiClock />
-          </div>
-          <div className="stat-content">
-            <h3>12</h3>
-            <p>Tasks Due</p>
-          </div>
-        </div>
-      </div>
+      {/* Main Content */}
+      <div className="dashboard-content">
+        {/* Quick Stats */}
+        {/* {!searchQuery && filterType === "all" && (
+          <div className="dashboard-stats">
+            <div className="stat-card">
+              <FiTrello className="stat-icon" />
+              <div>
+                <h3>{boards.length}</h3>
+                <p>Total Boards</p>
+              </div>
+            </div> */}
+            {/* <div className="stat-card">
+              <FiStar className="stat-icon" />
+              <div>
+                <h3>{starredBoards.length}</h3>
+                <p>Starred Boards</p>
+              </div>
+            </div> */}
+            {/* <div className="stat-card">
+              <FiUsers className="stat-icon" />
+              <div>
+                <h3>{workspaces.length}</h3>
+                <p>Workspaces</p>
+              </div>
+            </div> */}
+          {/* </div>
+        )} */}
 
-      {/* Recent Activity */}
-      <div className="recent-activity">
-        <h2>Recent Activity</h2>
-        <div className="activity-list">
-          <div className="activity-item">
-            <div className="activity-icon">
-              <FiTrello />
+        {/* Starred Boards Section */}
+        {!searchQuery && filterType === "all" && starredBoards.length > 0 && (
+          <div className="boards-section">
+            <div className="section-header">
+              <h2>
+                <FiStar /> Starred Boards
+              </h2>
             </div>
-            <div className="activity-content">
-              <p><strong>You</strong> created a new board "Project Alpha"</p>
-              <span className="activity-time">2 hours ago</span>
-            </div>
-          </div>
-          
-          <div className="activity-item">
-            <div className="activity-icon">
-              <FiUsers />
-            </div>
-            <div className="activity-content">
-              <p><strong>John Doe</strong> added you to "Marketing Campaign"</p>
-              <span className="activity-time">4 hours ago</span>
+            <div className={`boards-grid ${viewMode}`}>
+              {starredBoards.map((board) => (
+                <BoardCard
+                  key={board.id}
+                  board={board}
+                  onStarToggle={handleStarToggle}
+                  isStarLoading={toggleStarMutation.isLoading}
+                />
+              ))}
             </div>
           </div>
-          
-          <div className="activity-item">
-            <div className="activity-icon">
-              <FiClock />
-            </div>
-            <div className="activity-content">
-              <p>Card "API Documentation" is due tomorrow</p>
-              <span className="activity-time">6 hours ago</span>
-            </div>
-          </div>
-        </div>
-      </div>
+        )}
 
-      {/* Boards Section */}
-      <div className="boards-section">
-        <div className="section-header">
-          <h2>Your Boards</h2>
-          
-          <div className="section-controls">
-            {/* Search */}
-            <div className="search-container">
+        {/* Search and Filters */}
+        <div className="dashboard-controls">
+          <div className="search-section">
+            <div className="search-box">
               <FiSearch className="search-icon" />
               <input
                 type="text"
                 placeholder="Search boards..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="search-input"
               />
             </div>
-            
-            {/* Filter */}
-            <div className="filter-container">
-              <FiFilter className="filter-icon" />
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="filter-select"
+          </div>
+
+          <div className="filter-section">
+            <div className="filter-buttons">
+              <button
+                className={`filter-btn1 ${filterType === "all" ? "active" : ""}`}
+                onClick={() => setFilterType("all")}
               >
-                <option value="all">All Boards</option>
-                <option value="starred">Starred</option>
-                <option value="recent">Recent</option>
-              </select>
+                All Boards <h3>{boards.length}</h3>
+              </button>
+              {/* <button
+                className={`filter-btn1 ${
+                  filterType === "starred" ? "active" : ""
+                }`}
+                onClick={() => setFilterType("starred")}
+              >
+                <FiStar /> Starred
+              </button>
+              <button
+                className={`filter-btn1 ${
+                  filterType === "recent" ? "active" : ""
+                }`}
+                onClick={() => setFilterType("recent")}
+              > */}
+                {/* <FiClock /> Recent
+              </button> */}
             </div>
-            
-            {/* View Mode */}
+
             <div className="view-toggle">
               <button
-                className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
-                onClick={() => setViewMode('grid')}
+                className={`view-btn ${viewMode === "grid" ? "active" : ""}`}
+                onClick={() => setViewMode("grid")}
               >
                 <FiGrid />
               </button>
               <button
-                className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
-                onClick={() => setViewMode('list')}
+                className={`view-btn ${viewMode === "list" ? "active" : ""}`}
+                onClick={() => setViewMode("list")}
               >
                 <FiList />
               </button>
@@ -296,79 +231,109 @@ const DashboardPage = () => {
           </div>
         </div>
 
-        {/* Boards Grid/List */}
-        <div className={`boards-container ${viewMode}`}>
-          {filteredBoards().length > 0 ? (
-            filteredBoards().map(board => (
-              <BoardCard
-                key={board.id}
-                board={board}
-                onStarToggle={handleStarToggle}
-                viewMode={viewMode}
-              />
-            ))
-          ) : (
-            <div className="empty-state">
-              {searchQuery ? (
-                <>
-                  <h3>No boards found</h3>
-                  <p>Try adjusting your search or filters</p>
-                </>
-              ) : (
-                <>
-                  <h3>No boards yet</h3>
-                  <p>Create your first board to get started organizing your work</p>
-                  <button 
-                    className="create-board-btn"
-                    onClick={() => setShowCreateModal(true)}
-                  >
-                    <FiPlus />
-                    Create Your First Board
-                  </button>
-                </>
+        {/* Recent Boards Section */}
+        {!searchQuery && filterType === "all" && (
+          <div className="boards-section">
+            <div className="board-heading">
+              <h2>
+                All Boards
+              </h2>
+              {boards.length > 8 && (
+                <button
+                  className="view-all-btn"
+                  onClick={() => setFilterType("all")}
+                >
+                  View All
+                </button>
               )}
             </div>
-          )}
-        </div>
-      </div>
+            <div className={`boards-grid ${viewMode}`}>
+              {recentBoards.map((board) => (
+                <BoardCard
+                  key={board.id}
+                  board={board}
+                  onStarToggle={handleStarToggle}
+                  isStarLoading={toggleStarMutation.isLoading}
+                />
+              ))}
+              {/* Create Board Card */}
+              {boards.length > 0 && (
+                <div
+                  className="create-board-card"
+                  onClick={() => setShowCreateModal(true)}
+                >
+                  <div className="create-board-content">
+                    <FiPlus className="create-board-icon" />
+                    <span>Create new board</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
-      {/* Workspaces Section */}
-      {workspaces.length > 0 && (
-        <div className="workspaces-section">
-          <div className="section-header">
-            <h2>Your Workspaces</h2>
-            <Link to="/workspaces/new" className="create-workspace-btn">
-              <FiPlus />
-              Create Workspace
-            </Link>
-          </div>
-          
-          <div className="workspaces-grid">
-            {workspaces.map(workspace => (
-              <div key={workspace.id} className="workspace-card">
-                <div className="workspace-header">
-                  <div className="workspace-avatar">
-                    {workspace.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="workspace-info">
-                    <h3>{workspace.name}</h3>
-                    <p>{workspace.description}</p>
-                  </div>
-                </div>
-                
-                <div className="workspace-stats">
-                  <span>{workspace.boardCount || 0} boards</span>
-                  <span>{workspace.memberCount || 0} members</span>
-                </div>
-                
-                <Link to={`/workspace/${workspace.id}`} className="workspace-link">
-                  View Workspace
-                </Link>
+        {/* All/Filtered Boards */}
+        {(searchQuery || filterType !== "all") && (
+          <div className="boards-section">
+            <div className="section-header">
+              <h2>
+                {searchQuery
+                  ? `Search Results (${filteredBoards.length})`
+                  : filterType === "starred"
+                  ? "Starred Boards"
+                  : filterType === "recent"
+                  ? "Recent Boards"
+                  : "All Boards"}
+              </h2>
+            </div>
+            {filteredBoards.length > 0 ? (
+              <div className={`boards-grid ${viewMode}`}>
+                {filteredBoards.map((board) => (
+                  <BoardCard
+                    key={board.id}
+                    board={board}
+                    onStarToggle={handleStarToggle}
+                    isStarLoading={toggleStarMutation.isLoading}
+                  />
+                ))}
               </div>
-            ))}
+            ) : (
+              <div className="empty-state">
+                <FiTrello className="empty-icon" />
+                <h3>No boards found</h3>
+                <p>
+                  {searchQuery
+                    ? "Try adjusting your search terms"
+                    : "Create your first board to get started!"}
+                </p>
+                {!searchQuery && (
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => setShowCreateModal(true)}
+                  >
+                    <FiPlus /> Create Board
+                  </button>
+                )}
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Empty State for new users */}
+        {boards.length === 0 && !boardsLoading && (
+          <div className="empty-state-main">
+            <FiTrello className="empty-icon-large" />
+            <h2>Welcome to Mini Trello!</h2>
+            <p>Create your first board to start organizing your work</p>
+            <button
+              className="btn btn-primary btn-large"
+              onClick={() => setShowCreateModal(true)}
+            >
+              <FiPlus /> Create Your First Board
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Create Board Modal */}
       {showCreateModal && (

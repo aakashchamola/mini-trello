@@ -21,8 +21,8 @@ import Sidebar from './components/layout/Sidebar';
 // Pages
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
-import DashboardPage from './pages/DashboardPageNew'; // Updated to use React Query version
-import BoardPage from './pages/BoardPageNew'; // Updated to use React Query version
+import DashboardPage from './pages/DashboardPage'; // Updated to use React Query version
+import BoardPage from './pages/BoardPage'; // Updated to use React Query version
 import WorkspacePage from './pages/WorkspacePage';
 import ProfilePage from './pages/ProfilePage';
 import NotFoundPage from './pages/NotFoundPage';
