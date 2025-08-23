@@ -385,6 +385,28 @@ const listController = {
         attributes: ['id', 'title', 'position', 'boardId', 'createdAt', 'updatedAt']
       });
 
+      // Emit real-time update to all clients on this board for each list that moved
+      if (req.io) {
+        console.log('Emitting list:moved events to board-' + board.id);
+        for (const { id, position } of value.listPositions) {
+          const listData = updatedLists.find(list => list.id === id);
+          req.io.to(`board-${board.id}`).emit('list:moved', {
+            listId: id,
+            newPosition: position,
+            listData: {
+              id: listData.id,
+              title: listData.title,
+              position: listData.position,
+              boardId: listData.boardId
+            },
+            movedBy: req.user,
+            timestamp: new Date().toISOString()
+          });
+        }
+      } else {
+        console.log('req.io is not available for list reorder event');
+      }
+
       res.json({
         message: 'Lists reordered successfully',
         lists: updatedLists

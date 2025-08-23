@@ -406,6 +406,10 @@ class SocketService {
     this.on(SOCKET_EVENTS.LIST_UPDATED, callback);
   }
 
+  onListMoved(callback) {
+    this.on(SOCKET_EVENTS.LIST_MOVED, callback);
+  }
+
   onListDeleted(callback) {
     this.on(SOCKET_EVENTS.LIST_DELETED, callback);
   }

@@ -799,6 +799,40 @@ const cardController = {
       // Refresh the card data to return updated info
       await card.reload();
 
+      // Emit real-time update to all clients on this board
+      try {
+        if (req.io) {
+          console.log('Emitting card:moved event to board-' + board.id);
+          req.io.to(`board-${board.id}`).emit('card:moved', {
+            cardId: card.id,
+            fromListId: parseInt(listId),
+            toListId: value.targetListId,
+            newPosition: card.position,
+            cardData: {
+              id: card.id,
+              title: card.title,
+              description: card.description,
+              position: card.position,
+              priority: card.priority,
+              dueDate: card.dueDate,
+              isCompleted: card.isCompleted,
+              labels: card.labels,
+              listId: card.listId,
+              createdBy: card.createdBy,
+              createdAt: card.createdAt,
+              updatedAt: card.updatedAt
+            },
+            movedBy: req.user,
+            timestamp: new Date().toISOString()
+          });
+          console.log('Card:moved event emitted successfully');
+        } else {
+          console.log('req.io is not available for card move event');
+        }
+      } catch (socketError) {
+        console.error('Error emitting card:moved socket event:', socketError);
+      }
+
       res.json({
         message: 'Card moved successfully',
         card: {

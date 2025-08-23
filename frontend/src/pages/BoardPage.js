@@ -28,6 +28,7 @@ import BoardMemberManager from '../components/board/BoardMemberManager';
 import PresenceAvatars from '../components/board/PresenceAvatars';
 import ActivitySidebar from '../components/board/ActivitySidebar';
 import '../components/board/BoardEnhancements.css';
+import '../components/board/DragDropEnhancements.css';
 import './BoardPage.css';
 
 const BoardPageNew = () => {
@@ -52,6 +53,7 @@ const BoardPageNew = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddList, setShowAddList] = useState(false);
   const [showMemberModal, setShowMemberModal] = useState(false);
+  const [dragOperations, setDragOperations] = useState([]); // Track other users' drag operations
 
   // React Query hooks
   const { 
@@ -243,18 +245,127 @@ const BoardPageNew = () => {
       queryClient.invalidateQueries({ queryKey: ['boards', boardId, 'activities'] });
     };
 
+    // Handle real-time drag and drop events for other users
+    const handleCardMoved = (data) => {
+      console.log('🔄 Socket event - Card moved by another user:', data);
+      
+      // Update the board data cache optimistically for real-time feel
+      queryClient.setQueryData(['boards', boardId, 'with-data'], (oldData) => {
+        if (!oldData) return oldData;
+        
+        return {
+          ...oldData,
+          lists: oldData.lists.map(list => {
+            // Remove card from source list
+            if (list.id === data.fromListId) {
+              return {
+                ...list,
+                cards: list.cards.filter(card => card.id !== data.cardId)
+              };
+            }
+            
+            // Add card to target list
+            if (list.id === data.toListId) {
+              const newCards = [...list.cards];
+              
+              // Insert card at the correct position based on newPosition
+              const cardData = {
+                ...data.cardData,
+                listId: data.toListId,
+                position: data.newPosition
+              };
+              
+              // Find correct insertion point
+              let insertIndex = newCards.length;
+              for (let i = 0; i < newCards.length; i++) {
+                if (newCards[i].position > data.newPosition) {
+                  insertIndex = i;
+                  break;
+                }
+              }
+              
+              newCards.splice(insertIndex, 0, cardData);
+              
+              return {
+                ...list,
+                cards: newCards
+              };
+            }
+            
+            return list;
+          })
+        };
+      });
+      
+      // Also invalidate board activities for the activity sidebar
+      queryClient.invalidateQueries({ queryKey: ['boards', boardId, 'activities'] });
+    };
+
+    const handleListMoved = (data) => {
+      console.log('🔄 Socket event - List moved by another user:', data);
+      
+      // Update the board data cache optimistically for real-time feel
+      queryClient.setQueryData(['boards', boardId, 'with-data'], (oldData) => {
+        if (!oldData) return oldData;
+        
+        return {
+          ...oldData,
+          lists: oldData.lists.map(list => {
+            if (list.id === data.listId) {
+              return {
+                ...list,
+                position: data.newPosition
+              };
+            }
+            return list;
+          }).sort((a, b) => a.position - b.position) // Re-sort by position
+        };
+      });
+      
+      // Also invalidate board activities for the activity sidebar
+      queryClient.invalidateQueries({ queryKey: ['boards', boardId, 'activities'] });
+    };
+
+    // Handle real-time drag start/end events for visual feedback
+    const handleDragStart = (data) => {
+      console.log('🎯 Socket event - Drag started by another user:', data);
+      setDragOperations(prev => [
+        ...prev.filter(op => op.userId !== data.draggedBy.id), // Remove any existing ops by this user
+        {
+          id: data.id,
+          type: data.type,
+          userId: data.draggedBy.id,
+          userName: data.draggedBy.username || data.draggedBy.first_name,
+          timestamp: data.timestamp
+        }
+      ]);
+    };
+
+    const handleDragEnd = (data) => {
+      console.log('🎯 Socket event - Drag ended by another user:', data);
+      setDragOperations(prev => 
+        prev.filter(op => !(op.id === data.id && op.userId === data.draggedBy.id))
+      );
+    };
+
     // Register socket event listeners
     socketService.onCardCreated(handleCardCreated);
     socketService.onCardUpdated(handleCardUpdated);
     socketService.onCardDeleted(handleCardDeleted);
+    socketService.onCardMoved(handleCardMoved);
     socketService.onListCreated(handleListCreated);
     socketService.onListUpdated(handleListUpdated);
+    socketService.onListMoved(handleListMoved);
     socketService.onListDeleted(handleListDeleted);
     
     // Register comment and mention event listeners for real-time counters
     socketService.on('comment:created', handleCommentCreated);
     socketService.on('comment:deleted', handleCommentDeleted);
     socketService.on('mention:created', handleMentionCreated);
+    
+    // Register drag operation event listeners for visual feedback
+    socketService.on('drag-start', handleDragStart);
+    socketService.on('drag-end', handleDragEnd);
 
     // Log socket connection status
     const checkConnection = setInterval(() => {
@@ -271,12 +382,16 @@ const BoardPageNew = () => {
       socketService.removeAllListeners('card:created');
       socketService.removeAllListeners('card:updated');
       socketService.removeAllListeners('card:deleted');
+      socketService.removeAllListeners('card:moved');
       socketService.removeAllListeners('list:created');
       socketService.removeAllListeners('list:updated');
+      socketService.removeAllListeners('list:moved');
       socketService.removeAllListeners('list:deleted');
       socketService.removeAllListeners('comment:created');
       socketService.removeAllListeners('comment:deleted');
       socketService.removeAllListeners('mention:created');
+      socketService.removeAllListeners('drag-start');
+      socketService.removeAllListeners('drag-end');
       socketService.leaveBoard(boardId);
     };
   }, [boardId, queryClient]);
@@ -384,10 +499,24 @@ const BoardPageNew = () => {
     if (type === 'list') {
       const list = boardData.lists.find(l => String(l.id) === draggableId);
       startDrag(list, 'list', source.droppableId);
+      
+      // Emit socket event for visual feedback
+      socketService.emit('drag-start', {
+        type: 'list',
+        id: draggableId,
+        boardId: boardId
+      });
     } else if (type === 'card') {
       const sourceList = boardData.lists.find(l => String(l.id) === source.droppableId);
       const card = sourceList?.cards?.find(c => String(c.id) === draggableId);
       startDrag(card, 'card', source.droppableId);
+      
+      // Emit socket event for visual feedback
+      socketService.emit('drag-start', {
+        type: 'card',
+        id: draggableId,
+        boardId: boardId
+      });
     }
   };
 
@@ -401,6 +530,13 @@ const BoardPageNew = () => {
     console.log('🎉 Drag ended successfully!', result);
     
     const { destination, source, type, draggableId } = result;
+
+    // Emit drag-end event for visual feedback cleanup
+    socketService.emit('drag-end', {
+      type,
+      id: draggableId,
+      boardId: boardId
+    });
 
     // Schedule endDrag with a longer delay to ensure React Beautiful DnD completes its cleanup
     const scheduleEndDrag = () => {

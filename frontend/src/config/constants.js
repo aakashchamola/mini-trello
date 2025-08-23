@@ -81,6 +81,7 @@ export const SOCKET_EVENTS = {
   CARD_DELETED: 'card:deleted',
   LIST_CREATED: 'list:created',
   LIST_UPDATED: 'list:updated',
+  LIST_MOVED: 'list:moved',
   LIST_DELETED: 'list:deleted',
   COMMENT_CREATED: 'comment:created',
   COMMENT_UPDATED: 'comment:updated',
