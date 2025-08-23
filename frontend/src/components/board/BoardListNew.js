@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Droppable, Draggable } from 'react-beautiful-dnd';
-import { FiPlus, FiMoreHorizontal, FiEdit2, FiTrash2, FiCheck, FiX } from 'react-icons/fi';
+import { FiPlus, FiMoreHorizontal, FiEdit2, FiTrash2, FiCheck, FiX, FiMove } from 'react-icons/fi';
 import CardItem from './CardItem';
 import AddCardForm from '../forms/AddCardForm';
 import { useUpdateList, useDeleteList } from '../../hooks';
@@ -17,7 +17,9 @@ const BoardListNew = ({
   onCardDeleted, 
   onListUpdated, 
   onListDeleted,
-  isLoading = false
+  isLoading = false,
+  isDragging = false,
+  dragHandleProps = null
 }) => {
   const [showAddCard, setShowAddCard] = useState(false);
   const [showListMenu, setShowListMenu] = useState(false);
@@ -117,89 +119,96 @@ const BoardListNew = ({
   const isUpdating = updateListMutation.isLoading || deleteListMutation.isLoading;
 
   return (
-    <div className={`board-list ${isLoading ? 'loading' : ''}`}>
+    <div className={`board-list ${isLoading ? 'loading' : ''} ${isDragging ? 'dragging' : ''}`}>
       <div className="list-header">
-        {isEditingTitle ? (
-          <div className="list-title-edit">
-            <input
-              type="text"
-              value={editTitle}
-              onChange={(e) => setEditTitle(e.target.value)}
-              onKeyDown={handleKeyDown}
-              onBlur={handleUpdateTitle}
-              className="list-title-input"
-              autoFocus
-              disabled={isUpdating}
-            />
-            <div className="edit-actions">
-              <button 
-                onClick={handleUpdateTitle} 
-                className="save-btn"
-                disabled={isUpdating}
-              >
-                <FiCheck />
-              </button>
-              <button 
-                onClick={() => {
-                  setIsEditingTitle(false);
-                  setEditTitle(list.title);
-                }} 
-                className="cancel-btn"
-                disabled={isUpdating}
-              >
-                <FiX />
-              </button>
-            </div>
+        {dragHandleProps && (
+          <div className="list-drag-handle" {...dragHandleProps}>
+            <FiMove />
           </div>
-        ) : (
-          <>
-            <h3 
-              className="list-title" 
-              onClick={() => setIsEditingTitle(true)}
-              title="Click to edit"
-            >
-              {list.title}
-              {list.cards && (
-                <span className="card-count">{list.cards.length}</span>
-              )}
-            </h3>
-            <div className="list-actions">
-              <button 
-                className="list-menu-btn"
-                onClick={() => setShowListMenu(!showListMenu)}
-                disabled={isUpdating}
-              >
-                <FiMoreHorizontal />
-              </button>
-              {showListMenu && (
-                <div className="list-menu">
-                  <button 
-                    onClick={() => {
-                      setIsEditingTitle(true);
-                      setShowListMenu(false);
-                    }}
-                    className="menu-item"
-                    disabled={isUpdating}
-                  >
-                    <FiEdit2 />
-                    Edit Title
-                  </button>
-                  <button 
-                    onClick={() => {
-                      handleDeleteList();
-                      setShowListMenu(false);
-                    }}
-                    className="menu-item delete"
-                    disabled={isUpdating}
-                  >
-                    <FiTrash2 />
-                    Delete List
-                  </button>
-                </div>
-              )}
-            </div>
-          </>
         )}
+        <div className="list-header-content">
+          {isEditingTitle ? (
+            <div className="list-title-edit">
+              <input
+                type="text"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onBlur={handleUpdateTitle}
+                className="list-title-input"
+                autoFocus
+                disabled={isUpdating}
+              />
+              <div className="edit-actions">
+                <button 
+                  onClick={handleUpdateTitle} 
+                  className="save-btn"
+                  disabled={isUpdating}
+                >
+                  <FiCheck />
+                </button>
+                <button 
+                  onClick={() => {
+                    setIsEditingTitle(false);
+                    setEditTitle(list.title);
+                  }} 
+                  className="cancel-btn"
+                  disabled={isUpdating}
+                >
+                  <FiX />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <h3 
+                className="list-title" 
+                onClick={() => setIsEditingTitle(true)}
+                title="Click to edit"
+              >
+                {list.title}
+                {list.cards && (
+                  <span className="card-count">{list.cards.length}</span>
+                )}
+              </h3>
+              <div className="list-actions">
+                <button 
+                  className="list-menu-btn"
+                  onClick={() => setShowListMenu(!showListMenu)}
+                  disabled={isUpdating}
+                >
+                  <FiMoreHorizontal />
+                </button>
+                {showListMenu && (
+                  <div className="list-menu">
+                    <button 
+                      onClick={() => {
+                        setIsEditingTitle(true);
+                        setShowListMenu(false);
+                      }}
+                      className="menu-item"
+                      disabled={isUpdating}
+                    >
+                      <FiEdit2 />
+                      Edit Title
+                    </button>
+                    <button 
+                      onClick={() => {
+                        handleDeleteList();
+                        setShowListMenu(false);
+                      }}
+                      className="menu-item delete"
+                      disabled={isUpdating}
+                    >
+                      <FiTrash2 />
+                      Delete List
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       <Droppable droppableId={String(list.id)} type="card" isDropDisabled={isLoading}>
@@ -212,7 +221,7 @@ const BoardListNew = ({
             {list.cards?.map((card, index) => (
               <Draggable 
                 key={String(card.id)} 
-                draggableId={String(card.id)} 
+                draggableId={`card-${String(card.id)}`} 
                 index={index}
                 isDragDisabled={isLoading}
               >
@@ -226,6 +235,7 @@ const BoardListNew = ({
                       ...provided.draggableProps.style,
                       opacity: snapshot.isDragging ? 0.8 : 1
                     }}
+                    onClick={(e) => e.stopPropagation()} // Prevent event bubbling to list
                   >
                     <CardItem
                       card={card}

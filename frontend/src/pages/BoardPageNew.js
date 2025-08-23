@@ -288,91 +288,167 @@ const BoardPageNew = () => {
   };
 
   const handleDragEnd = async (result) => {
-    endDrag();
-    
-    // Don't allow drag if data isn't ready
-    if (!boardData?.lists || boardLoading) {
-      return;
-    }
+    console.log('🎉 Drag ended successfully!', result);
     
     const { destination, source, type, draggableId } = result;
 
-    // Check if drag was cancelled or no position change
-    if (!destination || (
-      destination.droppableId === source.droppableId &&
-      destination.index === source.index
-    )) {
+    // Schedule endDrag with a longer delay to ensure React Beautiful DnD completes its cleanup
+    const scheduleEndDrag = () => {
+      // Use setTimeout instead of requestAnimationFrame for more reliable timing
+      setTimeout(() => {
+        endDrag();
+      }, 100); // Give React Beautiful DnD time to complete its animations
+    };
+
+    if (!destination) {
+      console.log('❌ Dropped outside valid area');
+      scheduleEndDrag();
       return;
     }
 
+    if (destination.droppableId === source.droppableId && destination.index === source.index) {
+      console.log('➡️ Dropped in same position');
+      scheduleEndDrag();
+      return;
+    }
+
+    console.log('✅ Valid drag operation:', {
+      type,
+      draggableId,
+      from: `${source.droppableId}[${source.index}]`,
+      to: `${destination.droppableId}[${destination.index}]`,
+      sourceType: source.type,
+      destType: destination.type
+    });
+
     try {
       if (type === 'list') {
-        // Reorder lists
-        const listId = parseInt(draggableId);
-        const listToMove = boardData.lists.find(list => list.id === listId);
-        
-        if (!listToMove) return;
-
-        // Calculate new position using utility
-        const newPosition = calculateNewPosition(
-          boardData.lists,
-          destination.index
-        );
-
-        await reorderListsMutation.mutateAsync({ 
-          boardId, 
-          listOrder: [{ id: listId, position: newPosition }]
-        });
-        
-      } else if (type === 'card') {
-        // Move card
-        const sourceListId = source.droppableId;
-        const targetListId = destination.droppableId;
-        const cardId = parseInt(draggableId);
-        
-        // Find the target list to get its cards for position calculation
-        const targetList = boardData.lists.find(list => String(list.id) === targetListId);
-        const sourceList = boardData.lists.find(list => String(list.id) === sourceListId);
-        
-        if (!targetList || !sourceList) {
-          console.error('Could not find source or target list:', { sourceListId, targetListId, lists: boardData.lists });
+        // Validate draggableId format for lists
+        if (!draggableId.startsWith('list-')) {
+          console.error('❌ Invalid list draggableId format:', draggableId);
+          scheduleEndDrag();
           return;
         }
         
-        const targetCards = targetList.cards || [];
+        // Ensure we're only handling list operations
+        if (destination.droppableId !== 'all-lists' || source.droppableId !== 'all-lists') {
+          console.error('❌ Invalid list drag - not within all-lists container');
+          scheduleEndDrag();
+          return;
+        }
         
-        let newPosition;
+        // Extract the actual list ID from the prefixed draggableId
+        const listId = draggableId.replace('list-', '');
         
-        if (sourceListId === targetListId) {
-          // Same list reordering - remove the card from consideration
-          const cardToMove = targetCards.find(card => card.id === cardId);
-          newPosition = calculateNewPosition(
-            targetCards,
-            destination.index,
-            cardToMove
-          );
-        } else {
-          // Moving between lists
-          newPosition = calculateNewPosition(
-            targetCards,
-            destination.index
-          );
+        // Handle list reordering
+        const sourceIndex = source.index;
+        const destIndex = destination.index;
+        
+        // Optimistically update local state
+        const currentLists = [...boardData.lists];
+        const [movedList] = currentLists.splice(sourceIndex, 1);
+        currentLists.splice(destIndex, 0, movedList);
+        
+        // Update positions
+        const updatedLists = currentLists.map((list, index) => ({
+          ...list,
+          position: index
+        }));
+        
+        // Update the query cache optimistically
+        queryClient.setQueryData(['boards', boardId, 'with-data'], (oldData) => ({
+          ...oldData,
+          lists: updatedLists
+        }));
+        
+        // Call API to persist the change
+        await reorderListsMutation.mutateAsync({
+          boardId,
+          listOrder: updatedLists.map(list => ({ id: list.id, position: list.position }))
+        });
+        
+      } else if (type === 'card') {
+        // Validate draggableId format for cards
+        if (!draggableId.startsWith('card-')) {
+          console.error('❌ Invalid card draggableId format:', draggableId);
+          scheduleEndDrag();
+          return;
+        }
+        
+        // Ensure we're only handling card operations between valid lists
+        const sourceListId = source.droppableId;
+        const destListId = destination.droppableId;
+        
+        // Extract the actual card ID from the prefixed draggableId
+        const cardId = draggableId.replace('card-', '');
+        
+        // Validate that source and destination are list IDs (numbers), not 'all-lists'
+        if (sourceListId === 'all-lists' || destListId === 'all-lists') {
+          console.error('❌ Invalid card drag - cards cannot be dropped in all-lists container');
+          scheduleEndDrag();
+          return;
+        }
+        
+        // Validate that the droppable IDs are valid list IDs
+        const sourceList = boardData?.lists?.find(list => String(list.id) === sourceListId);
+        const destList = boardData?.lists?.find(list => String(list.id) === destListId);
+        
+        if (!sourceList || !destList) {
+          console.error('❌ Invalid card drag - invalid list IDs', { sourceListId, destListId });
+          scheduleEndDrag();
+          return;
         }
 
-        await moveCardMutation.mutateAsync({
+        // Handle card movement between lists
+        console.log('🔄 Card drag parameters:', {
           boardId,
           sourceListId,
-          cardId: draggableId,
-          targetListId,
-          position: newPosition
+          destListId,
+          cardId,
+          position: destination.index
         });
+        
+        if (sourceListId === destListId) {
+          // Reordering within same list
+          await moveCardMutation.mutateAsync({
+            boardId,
+            sourceListId,
+            cardId,
+            targetListId: destListId,
+            position: destination.index
+          });
+        } else {
+          // Moving card between lists
+          await moveCardMutation.mutateAsync({
+            boardId,
+            sourceListId,
+            cardId,
+            targetListId: destListId,
+            position: destination.index
+          });
+        }
+      } else {
+        // Unknown drag type or improper draggableId format
+        console.error('❌ Unknown drag type or invalid draggableId format:', { 
+          type, 
+          draggableId,
+          expectedFormat: 'list-{id} or card-{id}'
+        });
+        scheduleEndDrag();
+        return;
       }
+      
+      // Schedule endDrag after successful operation
+      scheduleEndDrag();
+      
     } catch (error) {
-      console.error('Drag operation failed:', error);
+      console.error('❌ Drag operation failed:', error);
+      // Revert optimistic update on error
+      queryClient.invalidateQueries({ queryKey: ['boards', boardId, 'with-data'] });
+      // Schedule endDrag even on error
+      scheduleEndDrag();
     }
-  };
-
-  // Event handlers
+  };  // Event handlers
   const handleListAdded = async (listData) => {
     // The list has already been created by the AddListForm React Query mutation
     // Just handle any UI state changes
@@ -498,7 +574,7 @@ const BoardPageNew = () => {
                     {filteredLists.map((list, index) => (
                       <Draggable 
                         key={String(list.id)} 
-                        draggableId={String(list.id)} 
+                        draggableId={`list-${String(list.id)}`} 
                         index={index}
                         isDragDisabled={!boardData?.lists || boardLoading}
                       >
@@ -506,11 +582,11 @@ const BoardPageNew = () => {
                           <div
                             ref={provided.innerRef}
                             {...provided.draggableProps}
-                            {...provided.dragHandleProps}
                             style={{
                               ...provided.draggableProps.style,
                               opacity: snapshot.isDragging ? 0.8 : 1
                             }}
+                            className={snapshot.isDragging ? 'list-dragging-container' : ''}
                           >
                             <BoardListNew
                               list={list}
@@ -528,6 +604,8 @@ const BoardPageNew = () => {
                                 !boardData?.lists ||
                                 boardLoading
                               }
+                              isDragging={snapshot.isDragging}
+                              dragHandleProps={provided.dragHandleProps}
                             />
                           </div>
                         )}

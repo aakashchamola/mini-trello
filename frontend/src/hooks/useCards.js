@@ -271,16 +271,15 @@ export const useMoveCard = () => {
   
   return useMutation({
     mutationFn: async ({ boardId, sourceListId, cardId, targetListId, position }) => {
+      // Always use the move API, even for reordering within the same list
+      const response = await cardAPI.move(boardId, sourceListId, cardId, {
+        targetListId,
+        position
+      });
+      
       if (sourceListId === targetListId) {
-        // Reorder within same list
-        const response = await cardAPI.update(boardId, sourceListId, cardId, { position });
         return { type: 'reorder', card: response.data?.card || response.data };
       } else {
-        // Move between lists
-        const response = await cardAPI.move(boardId, sourceListId, cardId, {
-          targetListId,
-          position
-        });
         return { type: 'move', card: response.data?.card || response.data };
       }
     },
@@ -326,6 +325,9 @@ export const useMoveCard = () => {
       return { previousSourceCards, previousTargetCards };
     },
     onSuccess: (result, { boardId, sourceListId, targetListId }) => {
+      // Invalidate the board with data query to update the UI
+      queryClient.invalidateQueries({ queryKey: queryKeys.board(boardId).concat(['with-data']) });
+      
       // Invalidate related queries to ensure consistency
       queryClient.invalidateQueries({ queryKey: queryKeys.listCards(sourceListId) });
       if (sourceListId !== targetListId) {

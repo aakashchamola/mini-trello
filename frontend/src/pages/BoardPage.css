@@ -31,13 +31,10 @@
 .board-content {
   flex: 1;
   display: flex;
-  overflow-x: auto;
-  overflow-y: hidden;
   padding: 24px;
   gap: 20px;
   position: relative;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+  /* Remove overflow styles to prevent conflicts with React Beautiful DnD */
 }
 
 .board-content::-webkit-scrollbar {
@@ -66,6 +63,30 @@
   padding-bottom: 20px;
   align-items: flex-start;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow-x: auto;
+  overflow-y: visible;
+  width: 100%;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+.board-lists::-webkit-scrollbar {
+  height: 8px;
+}
+
+.board-lists::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.board-lists::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.board-lists::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
 }
 
 /* Enhanced drag and drop visual feedback */

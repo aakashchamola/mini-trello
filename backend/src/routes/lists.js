@@ -224,8 +224,6 @@ router.get('/boards/:boardId/lists/:listId', canRead, listController.getListById
  *       500:
  *         $ref: '#/components/responses/InternalError'
  */
-router.put('/boards/:boardId/lists/:listId', canEdit, ActivityLogger.logListActivity, listController.updateList);
-
 /**
  * @swagger
  * /api/boards/{boardId}/lists/reorder:
@@ -292,6 +290,54 @@ router.put('/boards/:boardId/lists/:listId', canEdit, ActivityLogger.logListActi
  *         $ref: '#/components/responses/InternalError'
  */
 router.put('/boards/:boardId/lists/reorder', canEdit, ActivityLogger.logListActivity, listController.reorderLists);
+
+/**
+ * @swagger
+ * /api/boards/{boardId}/lists/{listId}:
+ *   put:
+ *     summary: Update list
+ *     description: Update an existing list on a board
+ *     tags: [Lists]
+ *     parameters:
+ *       - $ref: '#/components/parameters/BoardId'
+ *       - $ref: '#/components/parameters/ListId'
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ListUpdate'
+ *     responses:
+ *       200:
+ *         description: List updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: List updated successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     list:
+ *                       $ref: '#/components/schemas/List'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       403:
+ *         $ref: '#/components/responses/Forbidden'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
+ */
+router.put('/boards/:boardId/lists/:listId', canEdit, ActivityLogger.logListActivity, listController.updateList);
 
 /**
  * @swagger

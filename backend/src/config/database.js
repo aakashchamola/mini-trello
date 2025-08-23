@@ -43,6 +43,9 @@ if (useMySQL) {
       idle: 10000
     }
   });
+  
+  // Enable foreign key constraints for SQLite
+  sequelize.query('PRAGMA foreign_keys = ON;');
 }
 
 // Common options for all models

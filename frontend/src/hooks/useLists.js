@@ -220,28 +220,41 @@ export const useReorderLists = () => {
     },
     onMutate: async ({ boardId, listOrder }) => {
       // Optimistic update
-      await queryClient.cancelQueries({ queryKey: queryKeys.boardLists(boardId) });
+      await queryClient.cancelQueries({ queryKey: queryKeys.board(boardId).concat(['with-data']) });
       
-      const previousLists = queryClient.getQueryData(queryKeys.boardLists(boardId));
+      const previousBoardData = queryClient.getQueryData(queryKeys.board(boardId).concat(['with-data']));
+      const previousLists = previousBoardData?.lists;
+      
+      if (!previousLists) {
+        console.warn('No previous lists data found for optimistic update');
+        return { previousBoardData };
+      }
       
       // Reorder lists based on listOrder
       const reorderedLists = listOrder.map(orderItem => {
-        const list = previousLists?.find(l => l.id === orderItem.id);
+        const list = previousLists.find(l => l.id === orderItem.id);
         return list ? { ...list, position: orderItem.position } : null;
       }).filter(Boolean);
       
-      queryClient.setQueryData(queryKeys.boardLists(boardId), reorderedLists);
+      // Update the board data with reordered lists
+      queryClient.setQueryData(queryKeys.board(boardId).concat(['with-data']), {
+        ...previousBoardData,
+        lists: reorderedLists
+      });
       
-      return { previousLists };
+      return { previousBoardData };
     },
     onSuccess: (data, { boardId }) => {
+      // Invalidate the board with data query to update the UI
+      queryClient.invalidateQueries({ queryKey: queryKeys.board(boardId).concat(['with-data']) });
+      
       // Invalidate to ensure fresh data
       queryClient.invalidateQueries({ queryKey: queryKeys.boardLists(boardId) });
     },
     onError: (error, { boardId }, context) => {
       // Rollback optimistic update
-      if (context?.previousLists) {
-        queryClient.setQueryData(queryKeys.boardLists(boardId), context.previousLists);
+      if (context?.previousBoardData) {
+        queryClient.setQueryData(queryKeys.board(boardId).concat(['with-data']), context.previousBoardData);
       }
       console.error('Failed to reorder lists:', error);
       toast.error('Failed to reorder lists');

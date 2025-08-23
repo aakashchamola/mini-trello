@@ -351,9 +351,22 @@ const listController = {
         });
       }
 
-      // Update positions in a transaction
+      // Update positions in a transaction using temporary positions to avoid constraint violations
       const { sequelize } = require('../config/database');
       await sequelize.transaction(async (t) => {
+        // First, set all lists to temporary high positive positions to avoid unique constraint violations
+        for (let i = 0; i < value.listPositions.length; i++) {
+          const { id } = value.listPositions[i];
+          await List.update(
+            { position: 999999 + i }, // Use high positive numbers that won't conflict
+            {
+              where: { id, boardId },
+              transaction: t
+            }
+          );
+        }
+        
+        // Then, update to the final positions
         for (const { id, position } of value.listPositions) {
           await List.update(
             { position },
@@ -411,11 +424,33 @@ const listController = {
 
       // Use transaction to ensure data consistency
       const { sequelize } = require('../config/database');
+      const { Card, Comment } = require('../models');
+      
       await sequelize.transaction(async (t) => {
-        // First delete the list (this will cascade delete all cards)
+        // Get all cards in this list
+        const cards = await Card.findAll({
+          where: { listId: list.id },
+          transaction: t
+        });
+
+        // For each card, delete all its comments first
+        for (const card of cards) {
+          await Comment.destroy({
+            where: { cardId: card.id },
+            transaction: t
+          });
+        }
+
+        // Then delete all cards in this list
+        await Card.destroy({
+          where: { listId: list.id },
+          transaction: t
+        });
+
+        // Then delete the list
         await list.destroy({ transaction: t });
 
-        // Then shift positions of lists that were after this one
+        // Finally shift positions of lists that were after this one
         await List.decrement('position', {
           where: {
             boardId,

@@ -638,54 +638,131 @@ const cardController = {
         console.log('Transaction start - oldPos:', oldPosition, 'newPos:', newPosition, 'oldList:', oldListId, 'newList:', newListId);
 
         if (oldListId !== newListId) {
-          // Moving between different lists - simplified approach
+          // Moving between different lists - avoid constraint violations
           console.log('Moving between lists');
           
-          // Step 1: Shift positions in source list (fill the gap)
-          await Card.decrement('position', {
+          // Step 1: Move the card to a temporary high positive position to avoid conflicts
+          await card.update({
+            position: 999999
+          }, { transaction: t });
+
+          // Step 2: Shift positions in source list using temporary positions
+          const sourceCards = await Card.findAll({
             where: {
               listId: oldListId,
               position: { [Op.gt]: oldPosition }
             },
+            order: [['position', 'ASC']],
             transaction: t
           });
 
-          // Step 2: Make space in target list (shift positions)
-          await Card.increment('position', {
+          // Update source cards with temporary positive positions
+          for (let i = 0; i < sourceCards.length; i++) {
+            await sourceCards[i].update({
+              position: 999900 + i
+            }, { transaction: t });
+          }
+
+          // Update source cards with final positions
+          for (let i = 0; i < sourceCards.length; i++) {
+            await sourceCards[i].update({
+              position: oldPosition + i
+            }, { transaction: t });
+          }
+
+          // Step 3: Shift positions in target list using temporary positions
+          const targetCards = await Card.findAll({
             where: {
               listId: newListId,
               position: { [Op.gte]: newPosition }
             },
+            order: [['position', 'ASC']],
             transaction: t
           });
+
+          // Update target cards with temporary positive positions
+          for (let i = 0; i < targetCards.length; i++) {
+            await targetCards[i].update({
+              position: 999800 + i
+            }, { transaction: t });
+          }
+
+          // Update target cards with final positions
+          for (let i = 0; i < targetCards.length; i++) {
+            await targetCards[i].update({
+              position: newPosition + 1 + i
+            }, { transaction: t });
+          }
+
+          // Step 4: Move the card to its final position
+          await card.update({
+            listId: newListId,
+            position: newPosition
+          }, { transaction: t });
         } else {
-          // Moving within the same list
+          // Moving within the same list - avoid constraint violations
+          console.log('Moving within same list');
+          
+          // Step 1: Move the card to a temporary high positive position to avoid conflicts
+          await card.update({
+            position: 999999
+          }, { transaction: t });
+
           if (oldPosition < newPosition) {
-            // Moving down - shift cards up
-            await Card.decrement('position', {
+            // Moving down - shift cards up using temporary positions
+            const cardsToShift = await Card.findAll({
               where: {
                 listId: oldListId,
                 position: { [Op.gt]: oldPosition, [Op.lte]: newPosition }
               },
+              order: [['position', 'ASC']],
               transaction: t
             });
+
+            // Update with temporary positions
+            for (let i = 0; i < cardsToShift.length; i++) {
+              await cardsToShift[i].update({
+                position: 999700 + i
+              }, { transaction: t });
+            }
+
+            // Update with final positions (shifted up by 1)
+            for (let i = 0; i < cardsToShift.length; i++) {
+              await cardsToShift[i].update({
+                position: oldPosition + i
+              }, { transaction: t });
+            }
           } else if (oldPosition > newPosition) {
-            // Moving up - shift cards down  
-            await Card.increment('position', {
+            // Moving up - shift cards down using temporary positions
+            const cardsToShift = await Card.findAll({
               where: {
                 listId: oldListId,
                 position: { [Op.gte]: newPosition, [Op.lt]: oldPosition }
               },
+              order: [['position', 'ASC']],
               transaction: t
             });
-          }
-        }
 
-        // Step 3: Update the card itself
-        await card.update({
-          listId: newListId,
-          position: newPosition
-        }, { transaction: t });
+            // Update with temporary positions
+            for (let i = 0; i < cardsToShift.length; i++) {
+              await cardsToShift[i].update({
+                position: 999600 + i
+              }, { transaction: t });
+            }
+
+            // Update with final positions (shifted down by 1)
+            for (let i = 0; i < cardsToShift.length; i++) {
+              await cardsToShift[i].update({
+                position: newPosition + 1 + i
+              }, { transaction: t });
+            }
+          }
+
+          // Step 2: Move the card to its final position
+          await card.update({
+            position: newPosition
+          }, { transaction: t });
+        }
         
         console.log('Card move completed');
       });
