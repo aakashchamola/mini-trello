@@ -70,6 +70,10 @@ const BoardMemberManager = ({ boardId, members = [], onMembersUpdate, currentUse
 
   const handleRoleChange = async (memberId, newRole, memberName) => {
     try {
+      if (newRole === "viewer") {
+        toast.error("Viewers cannot make changes to the board.");
+        return;
+      }
       await boardAPI.updateMemberRole(boardId, memberId, { role: newRole });
       toast.success(`${memberName}'s role updated to ${newRole}`);
       

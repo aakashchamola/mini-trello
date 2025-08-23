@@ -1,4 +1,4 @@
-const { verifyToken } = require('../middleware/auth');
+const { verifyAccessToken } = require('../utils/jwt');
 const User = require('../models/User');
 const Board = require('../models/Board');
 const BoardMember = require('../models/BoardMember');
@@ -15,24 +15,44 @@ class SocketHandler {
     this.io.use(async (socket, next) => {
       try {
         const token = socket.handshake.auth.token;
+        console.log('Socket auth - Token received:', token ? token.substring(0, 50) + '...' : 'null');
+        
         if (!token) {
-          return next(new Error('Authentication error: No token provided'));
+          console.log('Socket auth - No token provided');
+          return next(new Error('No authentication token provided. Please log in again.'));
         }
 
-        const decoded = verifyToken(token);
+        console.log('Socket auth - Attempting to verify token...');
+        const decoded = verifyAccessToken(token);
+        console.log('Socket auth - Token decoded successfully:', { userId: decoded.userId, type: decoded.type });
+        
         const user = await User.findByPk(decoded.userId, {
           attributes: ['id', 'username', 'email', 'first_name', 'last_name']
         });
 
         if (!user) {
-          return next(new Error('Authentication error: User not found'));
+          console.log('Socket auth - User not found for userId:', decoded.userId);
+          return next(new Error('User account not found. Please log in again.'));
         }
 
+        console.log('Socket auth - User found:', user.username);
         socket.userId = user.id;
         socket.userInfo = user;
         next();
       } catch (error) {
-        next(new Error('Authentication error: Invalid token'));
+        console.error('Socket auth - Error:', error.message);
+        console.error('Socket auth - Full error:', error);
+        
+        // Send more specific error messages based on the error type
+        if (error.message.includes('expired')) {
+          return next(new Error('Your session has expired. Please log in again.'));
+        } else if (error.message.includes('invalid signature')) {
+          return next(new Error('Invalid authentication token. Please log in again.'));
+        } else if (error.message.includes('malformed')) {
+          return next(new Error('Corrupted authentication token. Please log in again.'));
+        } else {
+          return next(new Error('Authentication failed. Please log in again.'));
+        }
       }
     });
 

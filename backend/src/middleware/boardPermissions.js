@@ -68,6 +68,14 @@ const checkBoardAccess = (requiredRole = null) => {
         }
       }
 
+      // Deny viewers from creating or editing items
+      if (membership.role === 'viewer' && (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH')) {
+        return res.status(403).json({
+          error: 'Permission denied',
+          message: 'Viewers cannot create or edit items on this board. Please contact an admin for access.'
+        });
+      }
+
       req.userBoardRole = membership.role;
       req.board = board;
       req.membership = membership;

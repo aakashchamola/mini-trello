@@ -1,6 +1,102 @@
 import axios from 'axios';
 import { API_BASE_URL, STORAGE_KEYS } from '../config/constants';
 
+// Helper function to validate token format
+const isValidTokenFormat = (token) => {
+  if (!token || typeof token !== 'string') {
+    return false;
+  }
+  
+  const parts = token.split('.');
+  if (parts.length !== 3) {
+    return false;
+  }
+  
+  try {
+    // Try to decode the payload part to ensure it's valid base64
+    const payload = atob(parts[1]);
+    JSON.parse(payload); // Ensure it's valid JSON
+    return true;
+  } catch (error) {
+    console.error('Token format validation failed:', error);
+    return false;
+  }
+};
+
+// Helper function to check if token is expired
+const isTokenExpired = (token) => {
+  try {
+    // First validate token format
+    if (!isValidTokenFormat(token)) {
+      console.warn('Invalid token format detected, but not treating as expired to avoid logout loop');
+      return false; // Don't treat as expired to avoid immediate logout
+    }
+    
+    const parts = token.split('.');
+    
+    // Try to decode the payload (second part)
+    const payload = JSON.parse(atob(parts[1]));
+    const currentTime = Date.now() / 1000;
+    
+    // Check if token has expiration time
+    if (!payload.exp) {
+      console.warn('Token does not have expiration time, treating as valid');
+      return false; // Treat as valid if no expiration
+    }
+    
+    // Only refresh if token is actually expired (no buffer for now)
+    const isExpired = payload.exp < currentTime;
+    
+    if (isExpired) {
+      console.log('Token is actually expired');
+    } else {
+      console.log('Token is still valid, expires at:', new Date(payload.exp * 1000));
+    }
+    
+    return isExpired;
+  } catch (error) {
+    console.error('Error checking token expiration:', error);
+    console.error('Token that caused error:', token ? token.substring(0, 50) + '...' : 'null');
+    // Don't treat as expired to avoid logout loop - let the server handle it
+    return false;
+  }
+};
+
+// Helper function to refresh auth token
+const refreshAuthToken = async () => {
+  const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+  if (!refreshToken) {
+    throw new Error('No refresh token available');
+  }
+
+  console.log('Refreshing token with:', refreshToken.substring(0, 20) + '...');
+
+  const response = await axios.post(`${API_BASE_URL}/auth/refresh-token`, {
+    refreshToken
+  });
+
+  console.log('Refresh response:', response.data);
+
+  // The backend returns tokens in a 'tokens' object
+  const tokens = response.data.tokens || response.data.data || response.data;
+  const { accessToken, refreshToken: newRefreshToken } = tokens;
+  
+  if (!accessToken) {
+    console.error('No access token in refresh response:', response.data);
+    throw new Error('No access token received from refresh');
+  }
+  
+  console.log('New access token received:', accessToken.substring(0, 20) + '...');
+  
+  localStorage.setItem(STORAGE_KEYS.TOKEN, accessToken);
+  if (newRefreshToken) {
+    localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, newRefreshToken);
+    console.log('New refresh token received:', newRefreshToken.substring(0, 20) + '...');
+  }
+  
+  return accessToken;
+};
+
 // Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -12,10 +108,27 @@ const api = axios.create({
 
 // Request interceptor to add auth token
 api.interceptors.request.use(
-  (config) => {
+  async (config) => {
     const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      // Only check expiration if token format is valid
+      if (isValidTokenFormat(token) && isTokenExpired(token)) {
+        console.warn('Token expired, attempting refresh before request...');
+        try {
+          await refreshAuthToken();
+          const newToken = localStorage.getItem(STORAGE_KEYS.TOKEN);
+          if (newToken) {
+            config.headers.Authorization = `Bearer ${newToken}`;
+          }
+        } catch (refreshError) {
+          console.error('Failed to refresh token:', refreshError);
+          // Let the request proceed with the expired token,
+          // the response interceptor will handle the 401 error
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      } else {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },
@@ -36,26 +149,23 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
-        if (refreshToken) {
-          const response = await axios.post(`${API_BASE_URL}/auth/refresh-token`, {
-            refreshToken
-          });
-
-          const { accessToken, refreshToken: newRefreshToken } = response.data.data;
-          
-          localStorage.setItem(STORAGE_KEYS.TOKEN, accessToken);
-          localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, newRefreshToken);
-
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-          return api(originalRequest);
-        }
+        const newToken = await refreshAuthToken();
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return api(originalRequest);
       } catch (refreshError) {
-        // Refresh failed, redirect to login
-        localStorage.removeItem(STORAGE_KEYS.TOKEN);
-        localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-        localStorage.removeItem(STORAGE_KEYS.USER);
-        window.location.href = '/login';
+        // Refresh failed, but don't immediately redirect if we're on login page
+        console.error('Token refresh failed:', refreshError);
+        
+        if (window.location.pathname !== '/login') {
+          localStorage.removeItem(STORAGE_KEYS.TOKEN);
+          localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+          localStorage.removeItem(STORAGE_KEYS.USER);
+          
+          // Add delay to avoid redirect during login process
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 1000);
+        }
       }
     }
 
@@ -196,3 +306,6 @@ export const handleAPIError = (error) => {
 };
 
 export default api;
+
+// Export utility functions for use in other services
+export { isTokenExpired, refreshAuthToken, isValidTokenFormat };
