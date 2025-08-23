@@ -323,12 +323,7 @@ const CardModal = ({ card: initialCard, boardId, listId, onClose, onCardUpdated,
                   </span>
                 </div>
               )}
-              {card.position !== undefined && (
-                <div className="info-item">
-                  <span>Position:</span>
-                  <span>{card.position + 1}</span>
-                </div>
-              )}
+
             </div>
           </div>
         </div>

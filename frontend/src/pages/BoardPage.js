@@ -722,7 +722,7 @@ const BoardPageNew = () => {
       {/* Member Management Modal */}
       {showMemberModal && (
         <div className="modal-overlay" onClick={handleCloseMemberModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content-members" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Manage Board Members</h2>
               <button 

@@ -87,7 +87,7 @@ const boardController = {
         })));
       }
 
-      // Get shared boards (where user is a member)
+      // Get shared boards (where user is a member BUT NOT the owner)
       if (includeShared) {
         const sharedBoardsData = await BoardMember.findAll({
           where: {
@@ -97,7 +97,10 @@ const boardController = {
           include: [{
             model: Board,
             as: 'board',
-            where: whereClause,
+            where: {
+              ...whereClause,
+              userId: { [Op.ne]: req.user.id } // Exclude boards where user is owner
+            },
             attributes: ['id', 'title', 'description', 'color', 'isPrivate', 'createdAt', 'updatedAt']
           }],
           attributes: ['role'],
