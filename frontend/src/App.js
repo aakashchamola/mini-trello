@@ -26,6 +26,7 @@ import BoardPage from './pages/BoardPageNew'; // Updated to use React Query vers
 import WorkspacePage from './pages/WorkspacePage';
 import ProfilePage from './pages/ProfilePage';
 import NotFoundPage from './pages/NotFoundPage';
+import SettingsPage from './pages/SettingsPage';
 
 // Debug Components
 import MutationTester from './components/debug/MutationTester';
@@ -84,6 +85,13 @@ function App() {
                       <ProtectedRoute>
                         <AppLayout>
                           <ProfilePage />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/settings" element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <SettingsPage />
                         </AppLayout>
                       </ProtectedRoute>
                     } />

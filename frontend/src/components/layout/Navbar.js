@@ -74,9 +74,9 @@ const Navbar = () => {
   return (
     <nav className="navbar">
       <div className="navbar-left">
-        <button className="menu-toggle" onClick={toggleSidebar}>
+        {/* <button className="menu-toggle" onClick={toggleSidebar}>
           <FiMenu />
-        </button>
+        </button> */}
         
         <Link to="/dashboard" className="navbar-brand">
           <span className="brand-text">Mini Trello</span>
@@ -85,7 +85,7 @@ const Navbar = () => {
 
       <div className="navbar-right">
         {/* Notifications */}
-        <div className="navbar-item notification-item">
+        {/* <div className="navbar-item notification-item">
           <button
             className="icon-button"
             onClick={() => setShowNotifications(!showNotifications)}
@@ -118,7 +118,7 @@ const Navbar = () => {
               </div>
             </div>
           )}
-        </div>
+        </div> */}
 
         {/* User Menu */}
         <div className="navbar-item user-item">
@@ -163,10 +163,10 @@ const Navbar = () => {
                   <FiUser />
                   <span>Profile</span>
                 </Link>
-                <Link to="/settings" className="dropdown-item">
+                {/* <Link to="/settings" className="dropdown-item">
                   <FiSettings />
                   <span>Settings</span>
-                </Link>
+                </Link> */}
                 <hr className="dropdown-divider" />
                 <button onClick={handleLogout} className="dropdown-item logout-item">
                   <FiLogOut />

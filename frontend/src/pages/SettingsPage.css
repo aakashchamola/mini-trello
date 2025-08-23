@@ -1,0 +1,82 @@
+.settings-page {
+  max-width: 480px;
+  margin: 40px auto;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  padding: 32px 24px;
+}
+
+.settings-page h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.settings-section {
+  margin-bottom: 32px;
+}
+
+.settings-section h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #3498db;
+  margin-bottom: 16px;
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-form label {
+  font-size: 14px;
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+.settings-form input {
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 15px;
+  background: #f8f9fa;
+  transition: border-color 0.2s;
+}
+
+.settings-form input:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+.settings-form button {
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background 0.2s;
+}
+
+.settings-form button:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+}
+
+.settings-form button:hover:not(:disabled) {
+  background: #2980b9;
+}
+
+@media (max-width: 600px) {
+  .settings-page {
+    max-width: 98vw;
+    padding: 18px 8px;
+  }
+}

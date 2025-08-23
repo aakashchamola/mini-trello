@@ -127,7 +127,7 @@ const DashboardPage = () => {
       {/* Main Content */}
       <div className="dashboard-content">
         {/* Quick Stats */}
-        {!searchQuery && filterType === "all" && (
+        {/* {!searchQuery && filterType === "all" && (
           <div className="dashboard-stats">
             <div className="stat-card">
               <FiTrello className="stat-icon" />
@@ -135,23 +135,23 @@ const DashboardPage = () => {
                 <h3>{boards.length}</h3>
                 <p>Total Boards</p>
               </div>
-            </div>
-            <div className="stat-card">
+            </div> */}
+            {/* <div className="stat-card">
               <FiStar className="stat-icon" />
               <div>
                 <h3>{starredBoards.length}</h3>
                 <p>Starred Boards</p>
               </div>
-            </div>
-            <div className="stat-card">
+            </div> */}
+            {/* <div className="stat-card">
               <FiUsers className="stat-icon" />
               <div>
                 <h3>{workspaces.length}</h3>
                 <p>Workspaces</p>
               </div>
-            </div>
-          </div>
-        )}
+            </div> */}
+          {/* </div>
+        )} */}
 
         {/* Starred Boards Section */}
         {!searchQuery && filterType === "all" && starredBoards.length > 0 && (
@@ -194,9 +194,9 @@ const DashboardPage = () => {
                 className={`filter-btn1 ${filterType === "all" ? "active" : ""}`}
                 onClick={() => setFilterType("all")}
               >
-                All Boards
+                All Boards <h3>{boards.length}</h3>
               </button>
-              <button
+              {/* <button
                 className={`filter-btn1 ${
                   filterType === "starred" ? "active" : ""
                 }`}
@@ -209,9 +209,9 @@ const DashboardPage = () => {
                   filterType === "recent" ? "active" : ""
                 }`}
                 onClick={() => setFilterType("recent")}
-              >
-                <FiClock /> Recent
-              </button>
+              > */}
+                {/* <FiClock /> Recent
+              </button> */}
             </div>
 
             <div className="view-toggle">

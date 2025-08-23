@@ -97,6 +97,14 @@ const updateProfileSchema = Joi.object({
       'string.max': 'Username cannot exceed 30 characters'
     }),
     
+  currentPassword: Joi.when('username', {
+    is: Joi.exist(),
+    then: Joi.string().required().messages({
+      'any.required': 'Current password is required to change username'
+    }),
+    otherwise: Joi.optional()
+  }),
+    
   avatar_url: Joi.string()
     .uri()
     .optional()

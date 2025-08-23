@@ -194,7 +194,27 @@ const updateProfile = async (req, res) => {
       });
     }
     
-    const { username, avatar_url } = value;
+    const { username, avatar_url, currentPassword } = value;
+    
+    // Get user with password if username is being updated
+    const user = await User.findByPk(req.userId);
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found',
+        message: 'User not found'
+      });
+    }
+    
+    // If username is being updated, verify current password
+    if (username && currentPassword) {
+      const isCurrentPasswordValid = await user.comparePassword(currentPassword);
+      if (!isCurrentPasswordValid) {
+        return res.status(400).json({
+          error: 'Invalid password',
+          message: 'Current password is incorrect'
+        });
+      }
+    }
     
     // Check if username is already taken (if provided)
     if (username) {
@@ -214,10 +234,11 @@ const updateProfile = async (req, res) => {
     }
     
     // Update user
-    await User.update(
-      { username, avatar_url },
-      { where: { id: req.userId } }
-    );
+    const updateData = {};
+    if (username) updateData.username = username;
+    if (avatar_url !== undefined) updateData.avatar_url = avatar_url;
+    
+    await User.update(updateData, { where: { id: req.userId } });
     
     // Get updated user
     const updatedUser = await User.findByPk(req.userId);
