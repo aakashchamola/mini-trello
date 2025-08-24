@@ -10,7 +10,7 @@ A modern, collaborative Kanban board application inspired by Trello, built with 
 - **React Beautiful DnD** for smooth, accessible drag-and-drop interactions
 - **Socket.IO Client** for real-time collaboration features
 - **React Router (v6)** for seamless client-side navigation
-- **CSS Modules & Tailwind CSS** for maintainable, responsive styling
+- **CSS Modules** for maintainable, responsive styling
 
 ### Backend
 - **Node.js with Express.js** for robust API development and middleware support
@@ -41,20 +41,45 @@ cd mini-trello
 ```
 
 ### 2. Backend Setup
+If you don’t have Docker or MySQL installed, you can directly use **SQLite** with one command:
+
+**Quick Setup without docker(Recommended):**
 ```bash
 cd backend
-npm install
+npm run setup  # Installs dependencies and copies .env.example to .env then runs db-switch.js sqlite to switch db to sqlite and then initializes database and starts backend server
 ```
 
-**Quick Setup (Recommended):**
+**Quick Setup with docker:**
+If you have docker and can use it, you can set up the backend, frontend, mysql with the following command:
+
 ```bash
-npm run setup    # Installs dependencies and initializes database and will start backend server
+docker-compose up --build # will take care of mysql database 
 ```
+
+You can  run the below command in another terminal to start the backend server:
+
+```bash
+cd backend
+npm start 
+```
+
 
 **Manual Setup:**
-Create a `.env` file in the backend directory by copying from `.env.example`:
 ```bash
+# Move into backend
+cd backend
+
+# Install dependencies
+npm install
+
+# Copy environment variables
 cp .env.example .env
+
+# Switch to SQLite (default simple setup)
+node db-switch.js sqlite
+
+# Start backend server
+npm start
 ```
 
 **Environment Variables Setup:**
@@ -64,18 +89,14 @@ The `.env.example` file contains all necessary environment variables with sample
 - `PORT` - Backend server port (default: 3001)
 - `USE_MYSQL` - Set to false for SQLite, true for MySQL
 
-**Database Setup:**
+**Database Setup:** 
+We have two options to set up the database:
+1. sqlite 
+2. mysql
 ```bash
-# Option 1: Use the initialization script (recommended)
-npm run db:init              # Creates database with schema and sample data
-
-# Option 2: Use the database switch utility migrates data from mysql to sqlite and vice versa
+# Use the database switch utility migrates data from mysql to sqlite and vice versa
 node db-switch.js sqlite     # Ensures proper SQLite setup
 node db-switch.js mysql      # Ensures proper MySQL setup
-
-**Start the Backend Server:**
-```bash
-npm start
 ```
 
 The backend will be available at `http://localhost:3001`
@@ -96,14 +117,6 @@ The frontend will be available at `http://localhost:3000`
 2. Register a new account or login using Google OAuth
 3. Create your first board and start organizing tasks!
 
-### 5. Sample User Accounts (for testing)
-The seed data includes pre-created users for testing:
-- **Email**: `john.doe@example.com` | **Password**: `Password123!`
-- **Email**: `jane.smith@example.com` | **Password**: `Password123!`
-- **Email**: `alice.johnson@example.com` | **Password**: `Password123!`
-
-All sample users have access to various pre-created boards with different collaboration scenarios.
-
 ---
 
 ## 📁 Project Structure
@@ -121,6 +134,8 @@ backend/
 │   │   ├── cardController.js    # Card operations
 │   │   ├── listController.js    # List management
 │   │   └── commentController.js # Comment system
+│   │   └── boardCollaboration.js # Board collaboration
+│   │   └── dragDropController.js # Drag and drop functionality
 │   ├── middleware/              # Express middleware
 │   │   ├── auth.js             # JWT authentication
 │   │   ├── boardPermissions.js # Role-based access control
@@ -133,14 +148,20 @@ backend/
 │   │   ├── Card.js             # Task cards
 │   │   ├── Comment.js          # Comment system
 │   │   └── Activity.js         # Activity logging
+│   │   └── Mention.js         # Mention system
+│   │   └── index.js         # Index file for easier imports
 │   ├── routes/                 # API route definitions
 │   ├── services/               # Business logic
+│   │   └── googleAuthService.js       # Google OAuth integration
+│   │   └── positionService.js         # Position management
 │   ├── socket/                 # Real-time functionality
 │   │   ├── socketHandler.js    # Main socket management
 │   │   ├── boardEvents.js      # Board-specific events
 │   │   └── realTimeMiddleware.js # Event emission
 │   ├── validation/             # Request validation schemas
 │   └── utils/                  # Helper functions
+│   │   ├── jwt.js              # JWT utilities
+│   │   ├── mentionUtils.js      # Mention system utilities
 ├── database.sqlite             # Local SQLite database
 └── server.js                   # Main application entry point
 ```
@@ -340,6 +361,7 @@ frontend/
 - **Card Management**: Create, edit, delete, move cards between lists
 - **Comments**: Add comments to cards with real-time updates
 - **Member Collaboration**: Add members to boards with role-based permissions
+- **Mentions**: Notify users by mentioning them in comments
 - **Activity Tracking**: Automatic logging of all board actions
 - **Real-time Updates**: Live collaboration with Socket.IO
 - **Drag & Drop**: Intuitive card and list reordering
@@ -364,126 +386,6 @@ frontend/
 - **API Documentation**: Swagger/OpenAPI documentation
 - **Activity Logging**: Audit trail for all actions
 - **Permission Middleware**: Role-based access control
-
----
-
-## 🗄️ Database Schema Overview
-
-The application uses SQLite by default (with MySQL support) and follows a normalized relational design:
-
-### Core Tables
-
-#### Users Table
-```sql
-users (
-  id INTEGER PRIMARY KEY,
-  email VARCHAR(255) UNIQUE NOT NULL,
-  username VARCHAR(100) UNIQUE NOT NULL,
-  password VARCHAR(255) NOT NULL,        -- bcrypt hashed
-  avatar_url VARCHAR(500),
-  email_verified BOOLEAN DEFAULT 0,
-  created_at TIMESTAMP,
-  updated_at TIMESTAMP
-)
-```
-
-#### Boards Table
-```sql
-boards (
-  id INTEGER PRIMARY KEY,
-  title VARCHAR(255) NOT NULL,
-  description TEXT,
-  owner_id INTEGER REFERENCES users(id),
-  color VARCHAR(255) DEFAULT '#0079bf',
-  is_starred BOOLEAN DEFAULT 0,
-  created_at TIMESTAMP,
-  updated_at TIMESTAMP
-)
-```
-
-#### Board Members Table (Collaboration)
-```sql
-board_members (
-  id INTEGER PRIMARY KEY,
-  board_id INTEGER REFERENCES boards(id),
-  user_id INTEGER REFERENCES users(id),
-  role VARCHAR(20) CHECK (role IN ('admin', 'editor', 'viewer')),
-  joined_at TIMESTAMP,
-  UNIQUE(board_id, user_id)
-)
-```
-
-#### Lists Table (Kanban Columns)
-```sql
-lists (
-  id INTEGER PRIMARY KEY,
-  title VARCHAR(255) NOT NULL,
-  board_id INTEGER REFERENCES boards(id),
-  position INTEGER DEFAULT 0,           -- For ordering
-  created_at TIMESTAMP,
-  updated_at TIMESTAMP
-)
-```
-
-#### Cards Table (Tasks)
-```sql
-cards (
-  id INTEGER PRIMARY KEY,
-  title VARCHAR(255) NOT NULL,
-  description TEXT,
-  list_id INTEGER REFERENCES lists(id),
-  position INTEGER DEFAULT 0,           -- For ordering within list
-  due_date TIMESTAMP NULL,
-  is_completed BOOLEAN DEFAULT 0,
-  created_at TIMESTAMP,
-  updated_at TIMESTAMP
-)
-```
-
-#### Comments Table
-```sql
-comments (
-  id INTEGER PRIMARY KEY,
-  content TEXT NOT NULL,
-  card_id INTEGER REFERENCES cards(id),
-  author_id INTEGER REFERENCES users(id),
-  created_at TIMESTAMP,
-  updated_at TIMESTAMP
-)
-```
-
-#### Activities Table (Audit Trail)
-```sql
-activities (
-  id INTEGER PRIMARY KEY,
-  board_id INTEGER REFERENCES boards(id),
-  user_id INTEGER REFERENCES users(id),
-  action_type VARCHAR(100) NOT NULL,    -- 'created', 'updated', 'moved', etc.
-  entity_type VARCHAR(50) NOT NULL,     -- 'board', 'list', 'card', 'comment'
-  entity_id INTEGER,
-  old_value TEXT,                       -- JSON string of old values
-  new_value TEXT,                       -- JSON string of new values
-  description TEXT NOT NULL,
-  created_at TIMESTAMP,
-  updated_at TIMESTAMP
-)
-```
-
-### Key Relationships
-- **One-to-Many**: User → Boards (ownership)
-- **Many-to-Many**: Users ↔ Boards (collaboration via board_members)
-- **One-to-Many**: Board → Lists → Cards
-- **One-to-Many**: Cards → Comments
-- **One-to-Many**: Board → Activities (audit trail)
-
-
-### Comments
-- User comments on cards
-- Fields: id, content, card_id, author_id, timestamps
-
-### Activities
-- Audit trail of board actions
-- Fields: id, board_id, user_id, action, description, entity_type, entity_id, metadata, created_at
 
 ---
 
@@ -541,30 +443,6 @@ The application uses **Socket.IO** for real-time collaboration, enabling multipl
 - **Comment Notifications**: Instant comment updates
 - **Visual Feedback**: See what other users are currently dragging
 
-### How to Start Real-time Server
-The real-time server is integrated with the main backend server - no separate setup required.
-
-**Backend Integration:**
-```javascript
-// Socket.IO is automatically initialized with the Express server
-const server = require('http').createServer(app);
-const io = require('socket.io')(server, {
-  cors: { origin: process.env.FRONTEND_URL }
-});
-
-// Real-time events are handled in src/socket/
-server.listen(3001);
-```
-
-**Frontend Connection:**
-```javascript
-// Automatic connection when user logs in
-import socketService from './services/socket';
-
-// Connect and join board room
-socketService.connect();
-socketService.joinBoard(boardId);
-```
 
 ### Supported Real-time Events
 
@@ -577,6 +455,10 @@ socketService.joinBoard(boardId);
 - `list:updated` - List title or details changed
 - `list:moved` - List reordered by drag-and-drop
 - `list:deleted` - List removed from board
+
+### Mention Events
+- `mention:added` - User mentioned in a comment
+- `mention:removed` - User unmentioned in a comment
 
 #### Card Events
 - `card:created` - New card added to list
@@ -601,50 +483,7 @@ When User A moves a card, User B immediately sees:
 2. **Live Movement**: Card position updates in real-time
 3. **Activity Update**: "User A moved Card X from List Y to List Z"
 4. **Optimistic UI**: Changes appear instantly, then sync with server
-
----
-
-## 🛠️ Development
-
-### File Structure
-```
-mini-trello/
-├── backend/
-│   ├── src/
-│   │   ├── config/         # Database, Swagger config
-│   │   ├── controllers/    # Business logic
-│   │   ├── middleware/     # Auth, permissions, logging
-│   │   ├── models/         # Database models
-│   │   ├── routes/         # API routes
-│   │   ├── services/       # External services
-│   │   ├── socket/         # Real-time handlers
-│   │   ├── utils/          # Helper functions
-│   │   └── validation/     # Input validation
-│   ├── database.sqlite     # SQLite database
-│   └── server.js           # Main server file
-├── frontend/
-│   ├── src/
-│   │   ├── components/     # React components
-│   │   ├── contexts/       # React contexts
-│   │   ├── hooks/          # Custom hooks
-│   │   ├── pages/          # Page components
-│   │   ├── services/       # API clients
-│   │   └── utils/          # Helper functions
-│   └── public/             # Static files
-└── docs/                   # Documentation
-```
-
-### Available Scripts
-
-**Backend:**
-- `npm start` - Start production server
-- `npm run dev` - Start development server with auto-reload
-- `npm test` - Run tests
-
-**Frontend:**
-- `npm start` - Start development server
-- `npm run build` - Build for production
-- `npm test` - Run tests
+5. **Mentions**: User B sees "User A mentioned you in a comment"
 
 ---
 
@@ -654,51 +493,9 @@ mini-trello/
 - **[High-Level Design (HLD)](./docs/HLD.md)** - System architecture, component design, and technology decisions
 - **[Low-Level Design (LLD)](./docs/LLD.md)** - Detailed implementation, API specifications, and database design
 - **[API Reference](./docs/API-Reference.md)** - Complete REST API documentation with examples
+- **[ERD Diagram](./docs/ERD_diagram.png)** - Entity-Relationship Diagram for database schema
 
 ### API Resources
 - **Swagger Documentation**: `http://localhost:3001/api-docs` (when backend is running)
 
-### Database Resources
-- **Schema**: See `database/01-schema.sql` for complete table definitions
-- **ERD Diagram**: See `docs/ERD_diagram.png` for visual schema representation
-
 ---
-
-## �🔒 Security Features
-
-- **JWT Authentication**: Secure token-based authentication with refresh tokens
-- **Password Hashing**: bcrypt with configurable salt rounds for secure password storage
-- **Input Validation**: Joi schemas prevent malicious input and ensure data integrity
-- **CORS Protection**: Configured for specific frontend domain to prevent unauthorized access
-- **Helmet Security**: Comprehensive security headers for production environments
-- **Permission Middleware**: Role-based access control (Admin/Editor/Viewer)
-- **SQL Injection Prevention**: Sequelize ORM with parameterized queries
-- **Rate Limiting**: Protection against brute force attacks and API abuse
-- **XSS Protection**: Input sanitization and proper content security policies
-
----
-
-
-### Docker Deployment
-```bash
-# Build and run with Docker Compose
-docker-compose up --build
-
-# Production mode
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-```
-## Changelog
-
-### v1.0.0 (Current)
-- ✅ Complete authentication system with JWT and Google OAuth integration
-- ✅ Full board, list, and card management with CRUD operations
-- ✅ Real-time collaboration using Socket.IO with room-based events
-- ✅ Comment system with real-time updates and notifications
-- ✅ Role-based access control (Admin/Editor/Viewer permissions)
-- ✅ Comprehensive activity tracking and audit trails
-- ✅ Intuitive drag and drop interface with visual feedback
-- ✅ Responsive design optimized for mobile and desktop
-- ✅ Complete API documentation with Swagger and Postman collection
-- ✅ Docker support for containerized deployment

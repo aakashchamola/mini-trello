@@ -5,6 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "setup": "node -e \"const fs=require('fs'); if(!fs.existsSync('.env')){fs.copyFileSync('.env.example','.env'); console.log('Created .env from .env.example');} else { console.log('.env already exists'); }\" && node db-switch.js sqlite && npm start",
     "dev": "nodemon server.js",
     "test": "jest",
     "test:watch": "jest --watch",
