@@ -43,6 +43,20 @@ cd mini-trello
 ### 2. Backend Setup
 If you don’t have Docker or MySQL installed, you can directly use **SQLite** with one command:
 
+**Optional Seed Data Setup(before starting up server):**
+To populate the database with initial data, run the following command:
+```bash
+# Run all seeders (preserves existing data)
+npm run seed
+
+# Fresh seed - recreates database with sample data
+npm run seed:fresh
+
+# Undo all seeders (cleans up data)
+npm run seed:undo
+
+```
+
 **Quick Setup without docker(Recommended):**
 ```bash
 cd backend
@@ -64,6 +78,7 @@ npm start
 ```
 
 
+
 **Manual Setup:**
 ```bash
 # Move into backend
@@ -81,6 +96,9 @@ node db-switch.js sqlite
 # Start backend server
 npm start
 ```
+
+
+
 
 **Environment Variables Setup:**
 The `.env.example` file contains all necessary environment variables with sample values. Key configurations include:

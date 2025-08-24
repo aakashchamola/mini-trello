@@ -12,7 +12,11 @@
     "test:api": "node test-api.js",
     "db:migrate": "npx sequelize-cli db:migrate",
     "db:seed": "npx sequelize-cli db:seed:all",
-    "db:reset": "npx sequelize-cli db:migrate:undo:all && npm run db:migrate && npm run db:seed"
+    "db:reset": "npx sequelize-cli db:migrate:undo:all && npm run db:migrate && npm run db:seed",
+    "seed": "node seeders/seed-runner.js run",
+    "seed:fresh": "node seeders/seed-runner.js fresh",
+    "seed:undo": "node seeders/seed-runner.js undo",
+    "seed:dev": "npm run seed:fresh && echo 'Development database ready with sample data!'"
   },
   "keywords": [
     "express",
